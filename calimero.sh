@@ -20,16 +20,9 @@ set -e
 #
 # License: Feel free to modify. Feedback (positive or negative) is welcome
 #
-# version:20180409-204000
+# version:20180413-214000
 #
 ###############################################################################
-if [ "$(id -u)" != "0" ]; then
-   echo "     Attention!!!"
-   echo "     Start script must run as root" 1>&2
-   echo "     Start a root shell with"
-   echo "     sudo su -"
-   exit 1
-fi
 ################################## Constants ##################################
 export CALIMERO_BUILD=~/calimero-build
 # export JAVA_LIB_PATH=/usr/java/packages/lib/arm
@@ -47,6 +40,7 @@ export KNX_CLIENT_ADDRESS_START="1.1.129"
 export KNX_CLIENT_ADDRESS_COUNT=8
 # Network interface calimero bind to
 # export LISTEN_NETWORK_INTERFACE=eth0
+export OUTGOING_NETWORK_INTERFACE_TUNNEL=eth0
 export LISTEN_NETWORK_INTERFACE=eth0
 # KNX_ROUTING => true or false
 export KNX_ROUTING=true
@@ -56,6 +50,37 @@ export CALIMERO_SERVER_USER=knx
 export CALIMERO_SERVER_GROUP=knx
 # KNX Server Name
 export KNX_SERVER_NAME="Calimero KNXnet/IP Server"
+###############################################################################
+# Check for root permissions
+if [ "$(id -u)" != "0" ]; then
+   echo "     Attention!!!"
+   echo "     Start script must run as root" 1>&2
+   echo "     Start a root shell with"
+   echo "     sudo su -"
+   exit 1
+fi
+################################# Parameters ##################################
+# Connection to KNX Bus
+if [ "$1" = "usb" ] || [ "$1" = "--usb" ];then
+    echo Configure support for USB
+    export KNX_CONNECTION=USB
+elif [ "$1" = "tunnel" ] || [ "$1" = "--tunnel" ];then    
+    echo Configure support for TUNNELING
+    if [ ! -z "$2" ];then
+        export KNX_CONNECTION=TUNNEL
+        export PARAM_VALUE=$2
+   		echo Tunnel Endpoint: $PARAM_VALUE
+    else
+        echo ERROR: A tunnel endpoint address must be specified!!!
+        echo Example: $0 tunnel 192.166.200.200
+		exit 4
+    fi
+elif [ "$1" = "-?" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ];then 	
+	echo Usage $0 [usb|tunnel ip-tunnel-endpoint]
+else
+    echo Configure support for TPUART
+    export KNX_CONNECTION=TPUART
+fi
 ########################## Determine Hardware #################################
 # sun8i=OrangePi PC  
 export HARDWARE_STRING_OPI=$(dmesg|grep Machine:|cut -d":" -f 2|xargs echo -n)
@@ -66,6 +91,7 @@ if [ ! -z $HARDWARE_STRING_OPI ]; then
 		export SERIAL_INTERFACE=$SERIAL_INTERFACE_ORANGE_PI
 	fi 
 fi
+# Raspberry 
 if [ -z $HARDWARE ]; then
 	set +e
 	dmesg |grep -i "Raspberry Pi" >  /dev/null
@@ -86,7 +112,7 @@ if [ $? -eq 0 ]; then
 fi
 # Enable error handling
 set -e
-# x86
+# x86 PC
 set +e
 arch|grep -i x86 > /dev/null
 if [ $? -eq 0 ]; then
@@ -99,7 +125,7 @@ if [ -z $HARDWARE ]; then
 	echo No supported Hardware detected
 	exit 1
 fi
-######################## Architecture #########################################
+######################## CPU Architecture #####################################
 set +e
 arch|grep -i arm > /dev/null
 if [ $? -eq 0 ]; then
@@ -179,7 +205,7 @@ if [ ! -d $JAVA_LIB_PATH ]; then
 	mkdir -p $JAVA_LIB_PATH
 fi 
 
-#################################### User #####################################
+################################ User and group ###############################
 # New User $CALIMERO_SERVER_USER 
 # For accessing serial devices => User $CALIMERO_SERVER_USER dialout group
 set +e
@@ -204,7 +230,7 @@ fi
 chown -R $CALIMERO_SERVER_USER:$CALIMERO_SERVER_GROUP /home/$CALIMERO_SERVER_USER
 
 ################################ USB ##########################################
-# Not sure if requiered to access USB devices...
+# !!!! Not sure if requiered to access USB devices...!!!!
 # Set permissions on USB devices
 # http://knx-user-forum.de/342820-post9.html to access USB Devices as $GROUP
 cat > /etc/udev/rules.d/90-knxusb-devices.rules <<EOF
@@ -394,17 +420,17 @@ if [ -z \$1 ]; then
     echo "   properties"
     exit 1	
 fi
-if [ \$1 = "properties" ]; then
-    if  [ -z \$2 ]  || [ \$2 = "-?" ] || [ \$2 = "-h" ]; then
+if [ "\$1" = "properties" ]; then
+    if  [ -z "\$2" ]  || [ "\$2" = "-?" ] || [ "\$2" = "-h" ]; then
         export PARAM2=--help
     else
         export PARAM2=\$2
     fi 
     java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-SNAPSHOT.jar \$1 -d $CALIMERO_CONFIG_PATH/properties.xml \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
-elif [ \$1 = "discover" ]; then 	
+elif [ "\$1" = "discover" ]; then 	
     java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-SNAPSHOT.jar \$@
 else
-    if  [ -z \$2 ]  || [ \$2 = "-?" ] || [ \$2 = "-h" ]; then
+    if  [ -z "\$2" ]  || [ "\$2" = "-?" ] || [ "\$2" = "-h" ]; then
         export PARAM2=--help
     else
         export PARAM2=\$2
@@ -422,8 +448,7 @@ echo Copy config files
 cp $CALIMERO_BUILD/calimero-server/resources/server-config.xml $CALIMERO_CONFIG_PATH
 cp $CALIMERO_BUILD/calimero-server/resources/properties.xml $CALIMERO_CONFIG_PATH
 
-echo Config to TPUART
-########################################### Basic config to TPUART #############
+############################## Configure calimero  ############################
 cp $CALIMERO_CONFIG_PATH/server-config.xml $CALIMERO_CONFIG_PATH/server-config.xml.org
 # Set ServerName
 xmlstarlet ed --inplace -u 'knxServer/@friendlyName' -v "$KNX_SERVER_NAME"  $CALIMERO_CONFIG_PATH/server-config.xml
@@ -433,10 +458,27 @@ xmlstarlet ed --inplace -u 'knxServer/serviceContainer/knxAddress[@type="individ
 xmlstarlet ed --inplace -u 'knxServer/serviceContainer/@routing' -v $KNX_ROUTING  $CALIMERO_CONFIG_PATH/server-config.xml 
 # Set Network Interface to $LISTEN_NETWORK_INTERFACE
 xmlstarlet ed --inplace -u 'knxServer/serviceContainer/@listenNetIf' -v $LISTEN_NETWORK_INTERFACE  $CALIMERO_CONFIG_PATH/server-config.xml 
-# Comment USB
-sed -e's/\(<knxSubnet type="usb".*<\/knxSubnet>\)/<!-- \1 -->/g' $CALIMERO_CONFIG_PATH/server-config.xml --in-place=.bak
-# Enable TPUART, uncomment TPUART
-sed -e's/<!--\s*\(<knxSubnet type="tpuart".*<\/knxSubnet>\)\s*-->/\1/g' $CALIMERO_CONFIG_PATH/server-config.xml --in-place=.bak
+if [ "$KNX_CONNECTION" = "TPUART" ];then
+	echo Configure calimero for TPUART connection
+    # Comment USB
+    sed -e's/\(<knxSubnet type="usb".*<\/knxSubnet>\)/<!-- \1 -->/g' $CALIMERO_CONFIG_PATH/server-config.xml --in-place=.bak
+    # Enable TPUART, uncomment TPUART
+    sed -e's/<!--\s*\(<knxSubnet type="tpuart".*<\/knxSubnet>\)\s*-->/\1/g' $CALIMERO_CONFIG_PATH/server-config.xml --in-place=.bak
+elif [ "$KNX_CONNECTION" = "USB" ];then
+	# Empty node -> First device is used
+	echo Configure calimero for USB connection
+    xmlstarlet ed  --inplace -u 'knxServer/serviceContainer/knxSubnet[@type="usb"]' -v "" $CALIMERO_CONFIG_PATH/server-config.xml
+elif [ "$KNX_CONNECTION" = "TUNNEL" ];then    
+    # Comment USB
+	echo Configure calimero for Tunnel connection to endpoint $PARAM_VALUE
+    sed -e's/\(<knxSubnet type="usb".*<\/knxSubnet>\)/<!-- \1 -->/g' $CALIMERO_CONFIG_PATH/server-config.xml --in-place=.bak
+    # Enable ip, 
+    sed -e's/<!--\s*\(<knxSubnet type="ip".*<\/knxSubnet>\)\s*-->/\1/g' $CALIMERO_CONFIG_PATH/server-config.xml --in-place=.bak
+    xmlstarlet ed  --inplace -u 'knxServer/serviceContainer/knxSubnet[@type="ip"]' -v $PARAM_VALUE $CALIMERO_CONFIG_PATH/server-config.xml
+else
+    echo No KNX Connection specified
+    exit 5
+fi
 # Set properties.xml path
 xmlstarlet ed  --inplace -u "knxServer/propertyDefinitions/@ref" -v "$CALIMERO_CONFIG_PATH/properties.xml" $CALIMERO_CONFIG_PATH/server-config.xml
 # Replace serial device /dev/ttySx => $SERIAL_INTERFACE
@@ -485,9 +527,9 @@ find ~ -name "slf4j-simple-1.8.0-beta1.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 find ~ -name "usb4java-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 find ~ -name "usb4java-javax-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 find ~ -name "usb-api-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-if [ $ARCH = "ARM" ]; then
+if [ "$ARCH" = "ARM" ]; then
 	find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-elif [ $ARCH = "X64" ]; then
+elif [ "$ARCH" = "X64" ]; then
 	find ~ -name "libusb4java-*-linux-x86_64.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 fi
 # find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
@@ -538,7 +580,7 @@ elif [ $HARDWARE = "Raspi" ]; then
 fi
 
 
-# java -cp "$CALIMERO_SERVER_PATH/*" tuwien.auto.calimero.server.Launcher $CALIMERO_CONFIG_PATH/server-config.xml
+# java -cp "$CALIMERO_SERVER_PATH/*" tuwien.auto.calimero.server.Launcher $CALIMERO_CONFIG_PATH/server-config.xml -Dorg.slf4j.simpleLogger.defaultLogLevel=info
 # Systemd knx unit
 echo Create systemd service
 cat >  /lib/systemd/system/knx.service <<EOF
