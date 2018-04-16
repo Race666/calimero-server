@@ -20,7 +20,7 @@ set -e
 #
 # License: Feel free to modify. Feedback (positive or negative) is welcome
 #
-# version:20180413-214000
+# version:20180416-210000
 #
 ###############################################################################
 ################################## Constants ##################################
@@ -32,7 +32,7 @@ export CALIMERO_CONFIG_PATH=/etc/calimero
 export BIN_PATH=/usr/local/bin
 # export SERIAL_INTERFACE=ttyS3
 export SERIAL_INTERFACE_ORANGE_PI=ttyS3
-export SERIAL_INTERFACE_RASPBERRY_PI=ttyACM0
+export SERIAL_INTERFACE_RASPBERRY_PI=ttyAMA0
 # Default, would be overwritten from hardware detection
 export SERIAL_INTERFACE=ttyS0
 export KNX_ADDRESS="1.1.128"
@@ -40,6 +40,7 @@ export KNX_CLIENT_ADDRESS_START="1.1.129"
 export KNX_CLIENT_ADDRESS_COUNT=8
 # Network interface calimero bind to
 # export LISTEN_NETWORK_INTERFACE=eth0
+# If defined this network interface is used for outgoing connections. Comment it if the tunnel target is on the same subnet
 export OUTGOING_NETWORK_INTERFACE_TUNNEL=eth0
 export LISTEN_NETWORK_INTERFACE=eth0
 # KNX_ROUTING => true or false
@@ -152,7 +153,7 @@ mkdir -p $CALIMERO_SERVER_PATH
 mkdir -p $CALIMERO_CONFIG_PATH
 
 ########################## Requiered packages #################################
-apt-get update 
+apt-get -y update 
 apt-get -y upgrade
 apt-get -y install setserial
 apt-get -y install git maven
@@ -161,19 +162,40 @@ apt-get -y install automake autoconf libtool
 apt-get -y install dirmngr 
 apt-get -y install net-tools software-properties-common xmlstarlet debconf-utils crudini
 
-# install Oracle Java
-apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys EEA14886
-apt-add-repository 'deb http://ppa.launchpad.net/webupd8team/java/ubuntu xenial main'
-apt-add-repository -s 'deb http://ppa.launchpad.net/webupd8team/java/ubuntu xenial main'
-apt-get update 
-# https://wiki.ubuntuusers.de/debconf/
-# debconf-show oracle-java8-installer
-# echo "set shared/accepted-oracle-license-v1-1 true"|debconf-communicate
-echo debconf shared/accepted-oracle-license-v1-1 select true |debconf-set-selections
-echo debconf shared/accepted-oracle-license-v1-1 seen true |debconf-set-selections
-apt-get -y install oracle-java8-installer
-apt-get -y install oracle-java8-set-default
-
+if [ $HARDWARE = "Raspi" ]; then
+    apt-get install oracle-java8-jdk
+	# update-default
+	update-java-alternatives -s jdk-8-oracle-arm32-vfp-hflt
+	export JAVA_HOME_PATH=/usr/lib/jvm/jdk-8-oracle-arm32-vfp-hflt
+	cat >/etc/profile.d/jdk.sh<<EOF
+	export J2SDKDIR=$JAVA_HOME_PATH
+	export J2REDIR=$JAVA_HOME_PATH/jre
+	export PATH=$PATH:$JAVA_HOME_PATH/bin:$JAVA_HOME_PATH/db/bin:$JAVA_HOME_PATH/jre/bin
+	export JAVA_HOME=$JAVA_HOME_PATH
+	export DERBY_HOME=$JAVA_HOME_PATH/db
+EOF
+	chmod +x /etc/profile.d/jdk.sh
+	. /etc/profile.d/jdk.sh
+else
+	# https://wiki.ubuntuusers.de/debconf/
+	# debconf-show oracle-java8-installer
+	# echo "set shared/accepted-oracle-license-v1-1 true"|debconf-communicate
+	# install Oracle Java
+	apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys EEA14886
+	apt-add-repository 'deb http://ppa.launchpad.net/webupd8team/java/ubuntu xenial main'
+	apt-add-repository -s 'deb http://ppa.launchpad.net/webupd8team/java/ubuntu xenial main'
+	apt-get update 
+	echo debconf shared/accepted-oracle-license-v1-1 select true |debconf-set-selections
+	echo debconf shared/accepted-oracle-license-v1-1 seen true |debconf-set-selections
+	apt-get -y install oracle-java8-installer
+	apt-get -y install oracle-java8-set-default
+	export JAVA_HOME_PATH=/usr/lib/jvm/java-8-oracle
+fi
+# Check for Java bin
+if [ ! -f $JAVA_HOME_PATH/bin/java ]; then
+    echo Java not found in path $JAVA_HOME_PATH!
+	exit 6
+fi	
 # Get JavaLibPath for libserialcom.so
 cat > $CALIMERO_BUILD/GetLibraryPath.java <<EOF
 /* 
@@ -305,6 +327,9 @@ cp ./build/libs/calimero-device-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
 cd $CALIMERO_BUILD
 git clone https://github.com/calimero-project/serial-native serial-native
 cd $CALIMERO_BUILD/serial-native
+# Set Java home
+xmlstarlet ed --inplace -N x=http://maven.apache.org/POM/4.0.0 -u 'x:project/x:properties/x:java.home' -v "$JAVA_HOME_PATH" pom.xml
+# Compile
 mvn compile
 # cp ./target/nar/serial-native-2.3-amd64-Linux-gpp-jni/lib/amd64-Linux-gpp/jni/libserialcom.so $JAVA_LIB_PATH
 # cp ./target/nar/serial-native-2.3-arm-Linux-gpp-jni/lib/arm-Linux-gpp/jni/libserialcom.so $JAVA_LIB_PATH
@@ -442,6 +467,8 @@ chmod +x $BIN_PATH/knxtools
 # Test 
 # knxtools monitor --medium knxip 192.168.200.1 --localhost 192.168.200.1 -c
 # knxtools groupmon -m knxip 192.168.200.1 --localhost 192.168.200.1 -v
+
+
 ############################################ Config files #####################
 echo Copy config files
 # Copy config files
@@ -475,6 +502,10 @@ elif [ "$KNX_CONNECTION" = "TUNNEL" ];then
     # Enable ip, 
     sed -e's/<!--\s*\(<knxSubnet type="ip".*<\/knxSubnet>\)\s*-->/\1/g' $CALIMERO_CONFIG_PATH/server-config.xml --in-place=.bak
     xmlstarlet ed  --inplace -u 'knxServer/serviceContainer/knxSubnet[@type="ip"]' -v $PARAM_VALUE $CALIMERO_CONFIG_PATH/server-config.xml
+	# If outgoing interface defined
+	if [ ! -z $OUTGOING_NETWORK_INTERFACE_TUNNEL ]; then
+		 xmlstarlet ed --inplace -s 'knxServer/serviceContainer/knxSubnet[@type="ip"]' -t attr -n netif -v $OUTGOING_NETWORK_INTERFACE_TUNNEL $CALIMERO_CONFIG_PATH/server-config.xml
+	fi
 else
     echo No KNX Connection specified
     exit 5
