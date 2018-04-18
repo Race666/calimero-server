@@ -553,8 +553,8 @@ xmlstarlet ed  --inplace -s 'knxServer/serviceContainer/additionalAddresses/knxA
 # find ~ -name "nrjavaserial-3.13.0.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 # find ~ -name "commons-net-3.3.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 echo Copy libs
-find ~ -name "slf4j-api-1.8.0-beta1.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-find ~ -name "slf4j-simple-1.8.0-beta1.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+find ~ -name "slf4j-api-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+find ~ -name "slf4j-simple-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 find ~ -name "usb4java-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 find ~ -name "usb4java-javax-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 find ~ -name "usb-api-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
