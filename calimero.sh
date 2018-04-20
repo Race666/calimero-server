@@ -51,6 +51,10 @@ export CALIMERO_SERVER_USER=knx
 export CALIMERO_SERVER_GROUP=knx
 # KNX Server Name
 export KNX_SERVER_NAME="Calimero KNXnet/IP Server"
+if [ "$1" = "-?" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ];then
+	echo Usage $0 "[usb|tunnel ip-tunnel-endpoint]"
+	exit 0
+fi
 ###############################################################################
 # Check for root permissions
 if [ "$(id -u)" != "0" ]; then
