@@ -311,21 +311,21 @@ EOF
 ############################# Build ###########################################
 # calimero-core
 cd $CALIMERO_BUILD
-git clone https://github.com/calimero-project/calimero-core calimero-core
+git clone https://github.com/calimero-project/calimero-core calimero-core || (cd calimero-core ; git pull)
 cd calimero-core
 ./gradlew assemble
 cp ./build/libs/calimero-core-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
 
 # calimero device
 cd $CALIMERO_BUILD 
-git clone https://github.com/calimero-project/calimero-device calimero-device
+git clone https://github.com/calimero-project/calimero-device calimero-device || (cd calimero-device ; git pull)
 cd calimero-device
 ./gradlew assemble
 cp ./build/libs/calimero-device-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
 
 # serial-native
 cd $CALIMERO_BUILD
-git clone https://github.com/calimero-project/serial-native serial-native
+git clone https://github.com/calimero-project/serial-native serial-native || (cd serial-native ; git pull)
 cd $CALIMERO_BUILD/serial-native
 # Set Java home
 xmlstarlet ed --inplace -N x=http://maven.apache.org/POM/4.0.0 -u 'x:project/x:properties/x:java.home' -v "$JAVA_HOME_PATH" pom.xml
@@ -341,14 +341,14 @@ fi
 
 # calimero-rxtx
 cd $CALIMERO_BUILD
-git clone https://github.com/calimero-project/calimero-rxtx.git calimero-rxtx
+git clone https://github.com/calimero-project/calimero-rxtx.git calimero-rxtx || (cd calimero-rxtx ; git pull)
 cd calimero-rxtx
 ./gradlew build
 cp ./build/libs/calimero-rxtx-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
 
 # calimero-server
 cd $CALIMERO_BUILD
-git clone https://github.com/calimero-project/calimero-server calimero-server
+git clone https://github.com/calimero-project/calimero-server calimero-server || (cd calimero-server ; git pull)
 cd $CALIMERO_BUILD/calimero-server
 #
 # Patch for prevent stopping calimero-server when STDIN ReadLine() return null, patch saved as base64 to create the patch file properly: cat STDINPatch.patch|base64
@@ -418,7 +418,7 @@ cp ./build/libs/calimero-server-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
 
 ########################## Calimero Client Tools ##############################
 cd $CALIMERO_BUILD
-git clone https://github.com/calimero-project/calimero-tools calimero-tools
+git clone https://github.com/calimero-project/calimero-tools calimero-tools || (cd calimero-tools ; git pull)
 cd calimero-tools
 ./gradlew assemble
 cp ./build/libs/calimero-tools-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
