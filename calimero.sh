@@ -153,8 +153,10 @@ mkdir -p $CALIMERO_SERVER_PATH
 mkdir -p $CALIMERO_CONFIG_PATH
 
 ########################## Requiered packages #################################
+if [ -z "$(find /var/cache/apt/pkgcache.bin -mmin -120)" ]; then
 apt-get -y update 
 apt-get -y upgrade
+fi
 apt-get -y install setserial
 apt-get -y install git maven
 apt-get -y install build-essential cmake
