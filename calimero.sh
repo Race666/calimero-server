@@ -76,8 +76,9 @@ elif [ "$1" = "tunnel" ] || [ "$1" = "--tunnel" ];then
         echo Example: $0 tunnel 192.166.200.200
 		exit 4
     fi
-elif [ "$1" = "-?" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ];then 	
-	echo Usage $0 [usb|tunnel ip-tunnel-endpoint]
+elif [ "$1" = "clean" ]; then
+	rm -R /root/calimero-build
+	exit 0
 else
     echo Configure support for TPUART
     export KNX_CONNECTION=TPUART
