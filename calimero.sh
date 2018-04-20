@@ -651,7 +651,7 @@ After=network.target
 #ExecStartPre=/lib/systemd/systemd-networkd-wait-online --timeout=60
 # Wait for a specific interface
 #ExecStartPre=/lib/systemd/systemd-networkd-wait-online --timeout=60 --interface=eth0
-ExecStart=/usr/bin/java -cp "$CALIMERO_SERVER_PATH/*" tuwien.auto.calimero.server.Launcher $CALIMERO_CONFIG_PATH/server-config.xml
+ExecStart=/usr/bin/java -cp "$CALIMERO_CONFIG_PATH:$CALIMERO_SERVER_PATH/*" tuwien.auto.calimero.server.Launcher $CALIMERO_CONFIG_PATH/server-config.xml
 Type=simple
 User=$CALIMERO_SERVER_USER
 Group=$CALIMERO_SERVER_GROUP
