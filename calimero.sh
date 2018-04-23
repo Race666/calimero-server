@@ -54,7 +54,7 @@ export KNX_SERVER_NAME="Calimero KNXnet/IP Server"
 ###############################################################################
 # Usage
 if [ "$1" = "-?" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ];then
-	echo Usage $0 "[usb|tunnel ip-tunnel-endpoint]"
+	echo Usage $0 "[tpuart|usb|tunnel ip-tunnel-endpoint|clean]"
 	exit 0
 fi
 ###############################################################################
@@ -82,6 +82,15 @@ elif [ "$1" = "tunnel" ] || [ "$1" = "--tunnel" ];then
         echo Example: $0 tunnel 192.166.200.200
 		exit 4
     fi
+elif [ "$1" = "clean" ]; then
+	# Check on zero for $CALIMERO_BUILD to avoid "cleaning" the wrong directory
+	if [ ! -z $CALIMERO_BUILD ] && [ -d $CALIMERO_BUILD ]; then
+		rm -r $CALIMERO_BUILD
+	fi
+	exit 0  
+elif [ "$1" = "tpuart" ] || [ "$1" = "--tpuart" ];then
+    echo Configure support for TPUART
+    export KNX_CONNECTION=TPUART    
 else
     echo Configure support for TPUART
     export KNX_CONNECTION=TPUART
