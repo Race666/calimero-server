@@ -51,6 +51,8 @@ export CALIMERO_SERVER_USER=knx
 export CALIMERO_SERVER_GROUP=knx
 # KNX Server Name
 export KNX_SERVER_NAME="Calimero KNXnet/IP Server"
+###############################################################################
+# Usage
 if [ "$1" = "-?" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ];then
 	echo Usage $0 "[usb|tunnel ip-tunnel-endpoint]"
 	exit 0
@@ -80,8 +82,6 @@ elif [ "$1" = "tunnel" ] || [ "$1" = "--tunnel" ];then
         echo Example: $0 tunnel 192.166.200.200
 		exit 4
     fi
-elif [ "$1" = "-?" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ];then 	
-	echo Usage $0 [usb|tunnel ip-tunnel-endpoint]
 else
     echo Configure support for TPUART
     export KNX_CONNECTION=TPUART
