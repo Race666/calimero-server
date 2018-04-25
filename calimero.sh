@@ -20,7 +20,7 @@ set -e
 #
 # License: Feel free to modify. Feedback (positive or negative) is welcome
 #
-# version:20180418-214000
+# version:20180425-054500
 #
 ###############################################################################
 ################################## Constants ##################################
@@ -421,7 +421,15 @@ cml2YXRlIGVudW0gUm91dGluZ0NvbmZpZyB7IFJlc2VydmVkLCBBbGwsIE5vbmUsIFRhYmxlIH07
 Cg==
 EOF
 cat STDINpatch.base64|base64 -d > STDINPatch.patch
-patch src/tuwien/auto/calimero/server/Launcher.java < STDINPatch.patch
+# Already applied?
+set +e
+patch -N --dry-run --silent src/tuwien/auto/calimero/server/Launcher.java < STDINPatch.patch 
+export EXIT_CODE=$?
+set -e
+if [ $EXIT_CODE -eq 0 ]; then
+    echo "Applying daemon patch"
+    patch src/tuwien/auto/calimero/server/Launcher.java < STDINPatch.patch
+fi
 
 # mvn compile
 ./gradlew build
