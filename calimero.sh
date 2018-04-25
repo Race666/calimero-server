@@ -20,7 +20,7 @@ set -e
 #
 # License: Feel free to modify. Feedback (positive or negative) is welcome
 #
-# version:20180425-054500
+# version:20180425-204500
 #
 ###############################################################################
 ################################## Constants ##################################
@@ -541,15 +541,15 @@ elif [ "$KNX_CONNECTION" = "USB" ];then
     xmlstarlet ed  --inplace -u 'knxServer/serviceContainer/knxSubnet[@type="usb"]' -v "" $CALIMERO_CONFIG_PATH/server-config.xml
 elif [ "$KNX_CONNECTION" = "TUNNEL" ];then    
     # Comment USB
-	echo Configure calimero for Tunnel connection to endpoint $PARAM_VALUE
+    echo Configure calimero for Tunnel connection to endpoint $PARAM_VALUE
     sed -e's/\(<knxSubnet type="usb".*<\/knxSubnet>\)/<!-- \1 -->/g' $CALIMERO_CONFIG_PATH/server-config.xml --in-place=.bak
     # Enable ip, 
-    sed -e's/<!--\s*\(<knxSubnet type="ip".*<\/knxSubnet>\)\s*-->/\1/g' $CALIMERO_CONFIG_PATH/server-config.xml --in-place=.bak
-    xmlstarlet ed  --inplace -u 'knxServer/serviceContainer/knxSubnet[@type="ip"]' -v $PARAM_VALUE $CALIMERO_CONFIG_PATH/server-config.xml
-	# If outgoing interface defined
-	if [ ! -z $OUTGOING_NETWORK_INTERFACE_TUNNEL ]; then
+    xmlstarlet ed --inplace -s 'knxServer/serviceContainer' -t elem -n knxSubnet -v $PARAM_VALUE $CALIMERO_CONFIG_PATH/server-config.xml
+    xmlstarlet ed --inplace -s 'knxServer/serviceContainer/knxSubnet'  -t attr -n "type" -v "ip" $CALIMERO_CONFIG_PATH/server-config.xml
+    # If outgoing interface defined
+    if [ ! -z $OUTGOING_NETWORK_INTERFACE_TUNNEL ]; then
 		 xmlstarlet ed --inplace -s 'knxServer/serviceContainer/knxSubnet[@type="ip"]' -t attr -n netif -v $OUTGOING_NETWORK_INTERFACE_TUNNEL $CALIMERO_CONFIG_PATH/server-config.xml
-	fi
+    fi
 else
     echo No KNX Connection specified
     exit 5
