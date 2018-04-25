@@ -322,26 +322,50 @@ ACTION=="add", SUBSYSTEM=="tty", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="204
 # ACTION=="add",SUBSYSTEM=="tty", ATTR{port}=="0x3F8",SYMLINK+="ttyTPUART1",RUN+="/bin/setserial /dev/%k low_latency", GROUP="dialout", MODE="0664"
 EOF
 
+# clones the repo if the directory doesn't exist, otherwise pulls while preserving local changes
+# $1 name of repository
+clone_update_repo() {
+	if [ -d $1 ]; then
+		cd $1
+
+		# make sure we have a user for git
+		git config user.name "$(whoami)"
+		git config user.email "$(whoami)@rpi"
+
+		echo "update $1, preserve local changes"
+
+		ts=$(date +%s) # timestamp the stash
+		msg=$(git stash save $ts " local changes before updating from upstream")
+		git pull
+
+		# check if we stashed anything
+		ret=$(grep -q "$ts" <<< "$msg") || true
+		ret=$?
+		if [ "$ret" -eq 0 ] ; then
+			git stash pop || true
+		fi
+	else
+		git clone https://github.com/calimero-project/$1 $1
+		cd $1
+	fi
+}
 
 ############################# Build ###########################################
 # calimero-core
 cd $CALIMERO_BUILD
-git clone https://github.com/calimero-project/calimero-core calimero-core
-cd calimero-core
+clone_update_repo calimero-core
 ./gradlew assemble
 cp ./build/libs/calimero-core-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
 
 # calimero device
-cd $CALIMERO_BUILD 
-git clone https://github.com/calimero-project/calimero-device calimero-device
-cd calimero-device
+cd $CALIMERO_BUILD
+clone_update_repo calimero-device
 ./gradlew assemble
 cp ./build/libs/calimero-device-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
 
 # serial-native
 cd $CALIMERO_BUILD
-git clone https://github.com/calimero-project/serial-native serial-native
-cd $CALIMERO_BUILD/serial-native
+clone_update_repo serial-native
 # Set Java home
 xmlstarlet ed --inplace -N x=http://maven.apache.org/POM/4.0.0 -u 'x:project/x:properties/x:java.home' -v "$JAVA_HOME_PATH" pom.xml
 # Compile
@@ -356,15 +380,13 @@ fi
 
 # calimero-rxtx
 cd $CALIMERO_BUILD
-git clone https://github.com/calimero-project/calimero-rxtx.git calimero-rxtx
-cd calimero-rxtx
+clone_update_repo calimero-rxtx
 ./gradlew build
 cp ./build/libs/calimero-rxtx-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
 
 # calimero-server
 cd $CALIMERO_BUILD
-git clone https://github.com/calimero-project/calimero-server calimero-server
-cd $CALIMERO_BUILD/calimero-server
+clone_update_repo calimero-server
 #
 # Patch for prevent stopping calimero-server when STDIN ReadLine() return null, patch saved as base64 to create the patch file properly: cat STDINPatch.patch|base64
 #   --- src/tuwien/auto/calimero/server/Launcher.java.org	2018-04-09 18:48:21.530275110 +0200
@@ -433,8 +455,7 @@ cp ./build/libs/calimero-server-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
 
 ########################## Calimero Client Tools ##############################
 cd $CALIMERO_BUILD
-git clone https://github.com/calimero-project/calimero-tools calimero-tools
-cd calimero-tools
+clone_update_repo calimero-tools
 ./gradlew assemble
 cp ./build/libs/calimero-tools-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
 # Tools wrapper
