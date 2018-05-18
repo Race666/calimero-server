@@ -22,8 +22,9 @@ set -e
 #
 # Changes:
 # 20180525-120000: Workaround for calimero-core => Master requires Java 9
+# 20180518-120000: symlink /opt/calimero-server/calimero-core-2.4-rc1.jar -> /opt/calimero-server/calimero-core-2.4-SNAPSHOT.jar
 #
-# version:20180525-120000
+# version:20180518-120000
 #
 ###############################################################################
 ################################## Constants ##################################
@@ -610,6 +611,10 @@ xmlstarlet ed  --inplace -s 'knxServer/serviceContainer/additionalAddresses/knxA
 # find ~ -name "nrjavaserial-3.13.0.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 # find ~ -name "commons-net-3.3.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 echo Copy libs
+if [ ! -f "$CALIMERO_SERVER_PATH/calimero-core-2.4-SNAPSHOT.jar" ]; then
+	#find ~ -name "calimero-core-2.4-SNAPSHOT.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+	ln -s /opt/calimero-server/calimero-core-2.4-rc1.jar /opt/calimero-server/calimero-core-2.4-SNAPSHOT.jar
+fi 
 find ~ -name "slf4j-api-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 find ~ -name "slf4j-simple-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 find ~ -name "usb4java-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
@@ -644,7 +649,7 @@ if [ $HARDWARE = "Orange" ]; then
 elif [ $HARDWARE = "Raspi" ]; then
 	# Raspberry
 	echo Alter Raspberry Hardware settings
-	if [ $IS_RASPBERRY_3 -eq 1 ]; then
+	if [ "$IS_RASPBERRY_3" == "1" ]; then
 		sed -e's/ console=ttyAMA0,115200/ enable_uart=1 dtoverlay=pi3-disable-bt/g' /boot/cmdline.txt --in-place=.bak
 		sed -e's/ console=serial0,115200/ enable_uart=1 dtoverlay=pi3-disable-bt/g' /boot/cmdline.txt --in-place=.bak2
 		sed -e's/ console=ttyS0,115200/ enable_uart=1 dtoverlay=pi3-disable-bt/g' /boot/cmdline.txt --in-place=.bak4
