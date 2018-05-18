@@ -20,7 +20,10 @@ set -e
 #
 # License: Feel free to modify. Feedback (positive or negative) is welcome
 #
-# version:20180425-204500
+# Changes:
+# 20180525-120000: Workaround for calimero-core => Master requires Java 9
+#
+# version:20180525-120000
 #
 ###############################################################################
 ################################## Constants ##################################
@@ -323,7 +326,7 @@ ACTION=="add", SUBSYSTEM=="tty", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="204
 EOF
 
 # clones the repo if the directory doesn't exist, otherwise pulls while preserving local changes
-# $1 name of repository
+# $1 name of repository, $2 is the branch to checkout
 clone_update_repo() {
 	if [ -d $1 ]; then
 		cd $1
@@ -336,6 +339,9 @@ clone_update_repo() {
 
 		ts=$(date +%s) # timestamp the stash
 		msg=$(git stash save $ts " local changes before updating from upstream")
+		if [ ! -z $2 ]; then
+			git checkout $2
+		fi
 		git pull
 
 		# check if we stashed anything
@@ -347,15 +353,18 @@ clone_update_repo() {
 	else
 		git clone https://github.com/calimero-project/$1 $1
 		cd $1
+		if [ ! -z $2 ]; then
+			git checkout $2
+		fi
 	fi
 }
 
 ############################# Build ###########################################
 # calimero-core
 cd $CALIMERO_BUILD
-clone_update_repo calimero-core
+clone_update_repo calimero-core "release/2.4"
 ./gradlew assemble
-cp ./build/libs/calimero-core-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
+cp ./build/libs/calimero-core-2.4-rc1.jar $CALIMERO_SERVER_PATH
 
 # calimero device
 cd $CALIMERO_BUILD
@@ -373,9 +382,11 @@ mvn compile
 # cp ./target/nar/serial-native-2.3-amd64-Linux-gpp-jni/lib/amd64-Linux-gpp/jni/libserialcom.so $JAVA_LIB_PATH
 # cp ./target/nar/serial-native-2.3-arm-Linux-gpp-jni/lib/arm-Linux-gpp/jni/libserialcom.so $JAVA_LIB_PATH
 if [ $ARCH = "ARM" ]; then
-	cp ./target/nar/serial-native-2.3-arm-Linux-gpp-jni/lib/arm-Linux-gpp/jni/libserialcom.so $JAVA_LIB_PATH
+	#cp ./target/nar/serial-native-2.3-arm-Linux-gpp-jni/lib/arm-Linux-gpp/jni/libserialcom.so $JAVA_LIB_PATH
+	cp ./target/nar/serial-native-2.4-SNAPSHOT-arm-Linux-gpp-jni/lib/arm-Linux-gpp/jni/libserialcom.so $JAVA_LIB_PATH
 elif [ $ARCH = "X64" ]; then
-	cp ./target/nar/serial-native-2.3-amd64-Linux-gpp-jni/lib/amd64-Linux-gpp/jni/libserialcom.so $JAVA_LIB_PATH
+	#cp ./target/nar/serial-native-2.3-amd64-Linux-gpp-jni/lib/amd64-Linux-gpp/jni/libserialcom.so $JAVA_LIB_PATH
+	cp ./target/nar/serial-native-2.4-SNAPSHOT-amd64-Linux-gpp-jni/lib/amd64-Linux-gpp/jni/libserialcom.so $JAVA_LIB_PATH
 fi
 
 # calimero-rxtx
@@ -386,6 +397,7 @@ cp ./build/libs/calimero-rxtx-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
 
 # calimero-server
 cd $CALIMERO_BUILD
+#clone_update_repo calimero-server "release/2.4"
 clone_update_repo calimero-server
 #
 # Patch for prevent stopping calimero-server when STDIN ReadLine() return null, patch saved as base64 to create the patch file properly: cat STDINPatch.patch|base64
@@ -434,6 +446,7 @@ fi
 # mvn compile
 ./gradlew build
 cp ./build/libs/calimero-server-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
+
 
 # list dependencies
 #mvn dependency:tree
