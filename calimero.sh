@@ -364,13 +364,13 @@ clone_update_repo() {
 # calimero-core
 cd $CALIMERO_BUILD
 clone_update_repo calimero-core "release/2.4"
-./gradlew assemble
+./gradlew install -x test
 cp ./build/libs/calimero-core-2.4-rc1.jar $CALIMERO_SERVER_PATH
 
 # calimero device
 cd $CALIMERO_BUILD
 clone_update_repo calimero-device
-./gradlew assemble
+./gradlew install -x test
 cp ./build/libs/calimero-device-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
 
 # serial-native
