@@ -341,6 +341,7 @@ clone_update_repo() {
 		ts=$(date +%s) # timestamp the stash
 		msg=$(git stash save $ts " local changes before updating from upstream")
 		if [ ! -z $2 ]; then
+			git fetch --all
 			git checkout $2
 		fi
 		git pull
@@ -354,6 +355,7 @@ clone_update_repo() {
 	else
 		git clone https://github.com/calimero-project/$1 $1
 		cd $1
+		git fetch --all
 		if [ ! -z $2 ]; then
 			git checkout $2
 		fi
