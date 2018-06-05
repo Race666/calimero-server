@@ -23,6 +23,9 @@ set -e
 # Changes:
 # 20180525-120000: Workaround for calimero-core => Master requires Java 9
 # 20180518-120000: symlink /opt/calimero-server/calimero-core-2.4-rc1.jar -> /opt/calimero-server/calimero-core-2.4-SNAPSHOT.jar
+# 20180603-230000: calimero-device switched to 2.4/release branch
+#                  copy jar with wildcards
+#                  delete all calimero-core-2.4-*test*.jar from server path
 #
 # version:20180518-120000
 #
@@ -367,13 +370,14 @@ clone_update_repo() {
 cd $CALIMERO_BUILD
 clone_update_repo calimero-core "release/2.4"
 ./gradlew install -x test
-cp ./build/libs/calimero-core-2.4-rc1.jar $CALIMERO_SERVER_PATH
+cp ./build/libs/calimero-core-2.4-*.jar $CALIMERO_SERVER_PATH
+rm $CALIMERO_SERVER_PATH/calimero-core-2.4-*test*.jar
 
 # calimero device
 cd $CALIMERO_BUILD
-clone_update_repo calimero-device
+clone_update_repo calimero-device "release/2.4"
 ./gradlew install -x test
-cp ./build/libs/calimero-device-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
+cp ./build/libs/calimero-device-2.4-*.jar $CALIMERO_SERVER_PATH
 
 # serial-native
 cd $CALIMERO_BUILD
@@ -396,12 +400,12 @@ fi
 cd $CALIMERO_BUILD
 clone_update_repo calimero-rxtx
 ./gradlew build
-cp ./build/libs/calimero-rxtx-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
+cp ./build/libs/calimero-rxtx-2.4-*.jar $CALIMERO_SERVER_PATH
 
 # calimero-server
 cd $CALIMERO_BUILD
-#clone_update_repo calimero-server "release/2.4"
-clone_update_repo calimero-server
+clone_update_repo calimero-server "release/2.4"
+#clone_update_repo calimero-server
 #
 # Patch for prevent stopping calimero-server when STDIN ReadLine() return null, patch saved as base64 to create the patch file properly: cat STDINPatch.patch|base64
 #   --- src/tuwien/auto/calimero/server/Launcher.java.org	2018-04-09 18:48:21.530275110 +0200
@@ -448,7 +452,7 @@ fi
 
 # mvn compile
 ./gradlew build
-cp ./build/libs/calimero-server-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
+cp ./build/libs/calimero-server-2.4-*.jar $CALIMERO_SERVER_PATH
 
 
 # list dependencies
