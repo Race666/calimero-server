@@ -26,8 +26,9 @@ set -e
 # 20180603-230000: calimero-device switched to 2.4/release branch
 #                  copy jar with wildcards
 #                  delete all calimero-core-2.4-*test*.jar from server path
-#
-# version:20180518-120000
+# 20180625-053000: Checkout release/2.4 from calimero-rxtx and calimero-tools
+# 20180629-053500  changed copy calimero-tools-2.4-*.jar instead of SNAPSHOT
+# version:20180529-053500
 #
 ###############################################################################
 ################################## Constants ##################################
@@ -398,9 +399,9 @@ fi
 
 # calimero-rxtx
 cd $CALIMERO_BUILD
-clone_update_repo calimero-rxtx
+clone_update_repo calimero-rxtx "release/2.4"
 ./gradlew build
-cp ./build/libs/calimero-rxtx-2.4-*.jar $CALIMERO_SERVER_PATH
+cp ./build/libs/calimero-rxtx-2.4-*.jar $CALIMERO_SERVER_PATH 
 
 # calimero-server
 cd $CALIMERO_BUILD
@@ -483,9 +484,9 @@ cp ./build/libs/calimero-server-2.4-*.jar $CALIMERO_SERVER_PATH
 
 ########################## Calimero Client Tools ##############################
 cd $CALIMERO_BUILD
-clone_update_repo calimero-tools
+clone_update_repo calimero-tools "release/2.4"
 ./gradlew assemble
-cp ./build/libs/calimero-tools-2.4-SNAPSHOT.jar $CALIMERO_SERVER_PATH
+cp ./build/libs/calimero-tools-2.4-*.jar $CALIMERO_SERVER_PATH
 # Tools wrapper
 cat > $BIN_PATH/knxtools <<EOF
 #!/bin/sh
