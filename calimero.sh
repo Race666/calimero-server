@@ -43,7 +43,12 @@ export SERIAL_INTERFACE_ORANGE_PI=ttyS3
 export SERIAL_INTERFACE_RASPBERRY_PI=ttyAMA0
 # Default, would be overwritten from hardware detection
 export SERIAL_INTERFACE=ttyS0
-export KNX_ADDRESS="1.1.128"
+# KNX_ROUTING => true or false
+export KNX_ROUTING=true
+# If routing is enabled set a valid Coupler KNX Address x.x.0
+export KNX_ADDRESS="2.1.0"
+# If routing disabled, set a KNX Device Address
+# export KNX_ADDRESS="1.1.128"
 export KNX_CLIENT_ADDRESS_START="1.1.129"
 export KNX_CLIENT_ADDRESS_COUNT=8
 # Network interface calimero bind to
@@ -51,8 +56,6 @@ export KNX_CLIENT_ADDRESS_COUNT=8
 # If defined this network interface is used for outgoing connections. Comment it if the tunnel target is on the same subnet
 export OUTGOING_NETWORK_INTERFACE_TUNNEL=eth0
 export LISTEN_NETWORK_INTERFACE=eth0
-# KNX_ROUTING => true or false
-export KNX_ROUTING=true
 # User to run Server
 export CALIMERO_SERVER_USER=knx
 # Group 
@@ -406,50 +409,6 @@ cp ./build/libs/calimero-rxtx-2.4-*.jar $CALIMERO_SERVER_PATH
 # calimero-server
 cd $CALIMERO_BUILD
 clone_update_repo calimero-server "release/2.4"
-#clone_update_repo calimero-server
-#
-# Patch for prevent stopping calimero-server when STDIN ReadLine() return null, patch saved as base64 to create the patch file properly: cat STDINPatch.patch|base64
-#   --- src/tuwien/auto/calimero/server/Launcher.java.org	2018-04-09 18:48:21.530275110 +0200
-#   +++ src/tuwien/auto/calimero/server/Launcher.java	2018-04-09 18:51:15.884590320 +0200
-#   @@ -574,9 +574,12 @@
-#    				if (line.equals("stat"))
-#    					System.out.println(gw);
-#    			}
-#   -			System.out.println("request to stop server");
-#   +			System.out.println("Detached from STDIN. Running in daemon mode");
-#   +			while (true) {
-#   +				Thread.sleep(100);
-#   +			}
-#    		}
-#   -		catch (final IOException e) {}
-#   +		catch (final Exception e) {}
-#    	}
-#    
-#    	private enum RoutingConfig { Reserved, All, None, Table };
-
-cat > STDINpatch.base64 <<EOF
-LS0tIHNyYy90dXdpZW4vYXV0by9jYWxpbWVyby9zZXJ2ZXIvTGF1bmNoZXIuamF2YS5vcmcJMjAx
-OC0wNC0wOSAxODo0ODoyMS41MzAyNzUxMTAgKzAyMDAKKysrIHNyYy90dXdpZW4vYXV0by9jYWxp
-bWVyby9zZXJ2ZXIvTGF1bmNoZXIuamF2YQkyMDE4LTA0LTA5IDE4OjUxOjE1Ljg4NDU5MDMyMCAr
-MDIwMApAQCAtNTc0LDkgKzU3NCwxMiBAQAogCQkJCWlmIChsaW5lLmVxdWFscygic3RhdCIpKQog
-CQkJCQlTeXN0ZW0ub3V0LnByaW50bG4oZ3cpOwogCQkJfQotCQkJU3lzdGVtLm91dC5wcmludGxu
-KCJyZXF1ZXN0IHRvIHN0b3Agc2VydmVyIik7CisJCQlTeXN0ZW0ub3V0LnByaW50bG4oIkRldGFj
-aGVkIGZyb20gU1RESU4uIFJ1bm5pbmcgaW4gZGFlbW9uIG1vZGUiKTsKKwkJCXdoaWxlICh0cnVl
-KSB7CisJCQkJVGhyZWFkLnNsZWVwKDEwMCk7CisJCQl9CiAJCX0KLQkJY2F0Y2ggKGZpbmFsIElP
-RXhjZXB0aW9uIGUpIHt9CisJCWNhdGNoIChmaW5hbCBFeGNlcHRpb24gZSkge30KIAl9CiAKIAlw
-cml2YXRlIGVudW0gUm91dGluZ0NvbmZpZyB7IFJlc2VydmVkLCBBbGwsIE5vbmUsIFRhYmxlIH07
-Cg==
-EOF
-cat STDINpatch.base64|base64 -d > STDINPatch.patch
-# Already applied?
-set +e
-patch -N --dry-run --silent src/tuwien/auto/calimero/server/Launcher.java < STDINPatch.patch 
-export EXIT_CODE=$?
-set -e
-if [ $EXIT_CODE -eq 0 ]; then
-    echo "Applying daemon patch"
-    patch src/tuwien/auto/calimero/server/Launcher.java < STDINPatch.patch
-fi
 
 # mvn compile
 ./gradlew build
@@ -693,7 +652,7 @@ After=network.target
 #ExecStartPre=/lib/systemd/systemd-networkd-wait-online --timeout=60
 # Wait for a specific interface
 #ExecStartPre=/lib/systemd/systemd-networkd-wait-online --timeout=60 --interface=eth0
-ExecStart=/usr/bin/java -cp "$CALIMERO_CONFIG_PATH:$CALIMERO_SERVER_PATH/*" tuwien.auto.calimero.server.Launcher $CALIMERO_CONFIG_PATH/server-config.xml
+ExecStart=/usr/bin/java -cp "$CALIMERO_CONFIG_PATH:$CALIMERO_SERVER_PATH/*" tuwien.auto.calimero.server.Launcher --no-stdin $CALIMERO_CONFIG_PATH/server-config.xml 
 Type=simple
 User=$CALIMERO_SERVER_USER
 Group=$CALIMERO_SERVER_GROUP
