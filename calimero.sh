@@ -27,8 +27,10 @@ set -e
 #                  copy jar with wildcards
 #                  delete all calimero-core-2.4-*test*.jar from server path
 # 20180625-053000: Checkout release/2.4 from calimero-rxtx and calimero-tools
-# 20180629-053500  changed copy calimero-tools-2.4-*.jar instead of SNAPSHOT
-# version:20180529-053500
+# 20180629-053500: changed copy calimero-tools-2.4-*.jar instead of SNAPSHOT
+# 20180702-054500: Removed detach server process from console patch and instead added new --no-stdin command line option to systemd service file. Set default KNX Address to a valid coupler address
+#
+# version:20180702-054500
 #
 ###############################################################################
 ################################## Constants ##################################
