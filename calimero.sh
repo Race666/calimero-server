@@ -29,8 +29,9 @@ set -e
 # 20180625-053000: Checkout release/2.4 from calimero-rxtx and calimero-tools
 # 20180629-053500: changed copy calimero-tools-2.4-*.jar instead of SNAPSHOT
 # 20180702-054500: Removed detach server process from console patch and instead added new --no-stdin command line option to systemd service file. Set default KNX Address to a valid coupler address
+# 20180706-054000: knxtools script adjusted to calimero-tools-2.4-rc1.jar
 #
-# version:20180702-054500
+# version:20180706-054000
 #
 ###############################################################################
 ################################## Constants ##################################
@@ -477,16 +478,16 @@ if [ "\$1" = "properties" ]; then
     else
         export PARAM2=\$2
     fi 
-    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-SNAPSHOT.jar \$1 -d $CALIMERO_CONFIG_PATH/properties.xml \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
+    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-rc1.jar \$1 -d $CALIMERO_CONFIG_PATH/properties.xml \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
 elif [ "\$1" = "discover" ]; then 	
-    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-SNAPSHOT.jar \$@
+    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-rc1.jar \$@
 else
     if  [ -z "\$2" ]  || [ "\$2" = "-?" ] || [ "\$2" = "-h" ]; then
         export PARAM2=--help
     else
         export PARAM2=\$2
     fi 
-    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-SNAPSHOT.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
+    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-rc1.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
 fi
 EOF
 chmod +x $BIN_PATH/knxtools
@@ -579,10 +580,6 @@ xmlstarlet ed  --inplace -s 'knxServer/serviceContainer/additionalAddresses/knxA
 # find ~ -name "nrjavaserial-3.13.0.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 # find ~ -name "commons-net-3.3.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 echo Copy libs
-if [ ! -f "$CALIMERO_SERVER_PATH/calimero-core-2.4-SNAPSHOT.jar" ]; then
-	#find ~ -name "calimero-core-2.4-SNAPSHOT.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-	ln -s /opt/calimero-server/calimero-core-2.4-rc1.jar /opt/calimero-server/calimero-core-2.4-SNAPSHOT.jar
-fi 
 find ~ -name "slf4j-api-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 find ~ -name "slf4j-simple-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 find ~ -name "usb4java-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
