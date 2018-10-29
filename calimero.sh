@@ -49,7 +49,7 @@ export SERIAL_INTERFACE=ttyS0
 # KNX_ROUTING => true or false
 export KNX_ROUTING=true
 # If routing is enabled set a valid Coupler KNX Address x.x.0
-export KNX_ADDRESS="2.1.0"
+export KNX_ADDRESS="1.1.0"
 # If routing disabled, set a KNX Device Address
 # export KNX_ADDRESS="1.1.128"
 export KNX_CLIENT_ADDRESS_START="1.1.129"
@@ -392,7 +392,7 @@ clone_update_repo serial-native
 # Set Java home
 xmlstarlet ed --inplace -N x=http://maven.apache.org/POM/4.0.0 -u 'x:project/x:properties/x:java.home' -v "$JAVA_HOME_PATH" pom.xml
 # Compile
-mvn compile
+mvn clean compile -Denforcer.skip=true
 # cp ./target/nar/serial-native-2.3-amd64-Linux-gpp-jni/lib/amd64-Linux-gpp/jni/libserialcom.so $JAVA_LIB_PATH
 # cp ./target/nar/serial-native-2.3-arm-Linux-gpp-jni/lib/arm-Linux-gpp/jni/libserialcom.so $JAVA_LIB_PATH
 if [ $ARCH = "ARM" ]; then
