@@ -22,14 +22,14 @@ set -e
 #
 # Changes:
 # 20180525-120000: Workaround for calimero-core => Master requires Java 9
-# 20180518-120000: symlink /opt/calimero-server/calimero-core-2.4-rc1.jar -> /opt/calimero-server/calimero-core-2.4-SNAPSHOT.jar
+# 20180518-120000: symlink /opt/calimero-server/calimero-core-2.4-rc2.jar -> /opt/calimero-server/calimero-core-2.4-SNAPSHOT.jar
 # 20180603-230000: calimero-device switched to 2.4/release branch
 #                  copy jar with wildcards
 #                  delete all calimero-core-2.4-*test*.jar from server path
 # 20180625-053000: Checkout release/2.4 from calimero-rxtx and calimero-tools
 # 20180629-053500: changed copy calimero-tools-2.4-*.jar instead of SNAPSHOT
 # 20180702-054500: Removed detach server process from console patch and instead added new --no-stdin command line option to systemd service file. Set default KNX Address to a valid coupler address
-# 20180706-054000: knxtools script adjusted to calimero-tools-2.4-rc1.jar
+# 20180706-054000: knxtools script adjusted to calimero-tools-2.4-rc2.jar
 #
 # version:20180706-054000
 #
@@ -478,16 +478,16 @@ if [ "\$1" = "properties" ]; then
     else
         export PARAM2=\$2
     fi 
-    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-rc1.jar \$1 -d $CALIMERO_CONFIG_PATH/properties.xml \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
+    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-rc2.jar \$1 -d $CALIMERO_CONFIG_PATH/properties.xml \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
 elif [ "\$1" = "discover" ]; then 	
-    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-rc1.jar \$@
+    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-rc2.jar \$@
 else
     if  [ -z "\$2" ]  || [ "\$2" = "-?" ] || [ "\$2" = "-h" ]; then
         export PARAM2=--help
     else
         export PARAM2=\$2
     fi 
-    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-rc1.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
+    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-rc2.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
 fi
 EOF
 chmod +x $BIN_PATH/knxtools
