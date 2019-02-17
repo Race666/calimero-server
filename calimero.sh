@@ -381,14 +381,14 @@ clone_update_repo() {
 cd $CALIMERO_BUILD
 clone_update_repo calimero-core "release/2.4"
 ./gradlew install -x test
-cp ./build/libs/calimero-core-2.4-*.jar $CALIMERO_SERVER_PATH
+cp ./build/libs/calimero-core-2.4*.jar $CALIMERO_SERVER_PATH
 rm $CALIMERO_SERVER_PATH/calimero-core-2.4-*test*.jar
 
 # calimero device
 cd $CALIMERO_BUILD
 clone_update_repo calimero-device "release/2.4"
 ./gradlew install -x test
-cp ./build/libs/calimero-device-2.4-*.jar $CALIMERO_SERVER_PATH
+cp ./build/libs/calimero-device-2.4*.jar $CALIMERO_SERVER_PATH
 
 # serial-native
 cd $CALIMERO_BUILD
@@ -410,8 +410,8 @@ fi
 # calimero-rxtx
 cd $CALIMERO_BUILD
 clone_update_repo calimero-rxtx "release/2.4"
-./gradlew build
-cp ./build/libs/calimero-rxtx-2.4-*.jar $CALIMERO_SERVER_PATH 
+./gradlew build install
+cp ./build/libs/calimero-rxtx-2.4*.jar $CALIMERO_SERVER_PATH
 
 # calimero-server
 cd $CALIMERO_BUILD
@@ -419,7 +419,7 @@ clone_update_repo calimero-server "release/2.4"
 
 # mvn compile
 ./gradlew build
-cp ./build/libs/calimero-server-2.4-*.jar $CALIMERO_SERVER_PATH
+cp ./build/libs/calimero-server-2.4*.jar $CALIMERO_SERVER_PATH
 
 
 # list dependencies
@@ -452,7 +452,7 @@ cp ./build/libs/calimero-server-2.4-*.jar $CALIMERO_SERVER_PATH
 cd $CALIMERO_BUILD
 clone_update_repo calimero-tools "release/2.4"
 ./gradlew assemble
-cp ./build/libs/calimero-tools-2.4-*.jar $CALIMERO_SERVER_PATH
+cp ./build/libs/calimero-tools-2.4*.jar $CALIMERO_SERVER_PATH
 # Tools wrapper
 cat > $BIN_PATH/knxtools <<EOF
 #!/bin/sh
