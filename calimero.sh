@@ -101,7 +101,11 @@ elif [ "$1" = "clean" ]; then
 	if [ ! -z $CALIMERO_BUILD ] && [ -d $CALIMERO_BUILD ]; then
 		rm -r $CALIMERO_BUILD
 	fi
-	exit 0  
+	# Check on zero for $CALIMERO_SERVER_PATH to avoid "cleaning" the wrong directory
+	if [ ! -z $CALIMERO_SERVER_PATH ] && [ -d $CALIMERO_SERVER_PATH ]; then
+		rm -r $CALIMERO_SERVER_PATH
+	fi
+	exit 0
 elif [ "$1" = "tpuart" ] || [ "$1" = "--tpuart" ];then
     echo Configure support for TPUART
     export KNX_CONNECTION=TPUART    
