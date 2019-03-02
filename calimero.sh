@@ -660,6 +660,7 @@ Type=simple
 User=$CALIMERO_SERVER_USER
 Group=$CALIMERO_SERVER_GROUP
 #TimeoutStartSec=60
+SuccessExitStatus=0 143
 
 [Install]
 WantedBy=multi-user.target network-online.target
