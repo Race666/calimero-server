@@ -69,6 +69,7 @@ export KNX_SERVER_NAME="Calimero KNXnet/IP Server"
 # Usage
 if [ "$1" = "-?" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ];then
 	echo Usage $0 "[tpuart|usb|tunnel ip-tunnel-endpoint|clean]"
+	echo "    clean        deletes directories" $CALIMERO_BUILD and $CALIMERO_SERVER_PATH
 	exit 0
 fi
 ###############################################################################
@@ -99,11 +100,19 @@ elif [ "$1" = "tunnel" ] || [ "$1" = "--tunnel" ];then
 elif [ "$1" = "clean" ]; then
 	# Check on zero for $CALIMERO_BUILD to avoid "cleaning" the wrong directory
 	if [ ! -z $CALIMERO_BUILD ] && [ -d $CALIMERO_BUILD ]; then
-		rm -r $CALIMERO_BUILD
+		if [[ $CALIMERO_BUILD == *"calimero"* ]]; then
+			rm -r $CALIMERO_BUILD
+		else
+			echo $CALIMERO_BUILD does not seem to be a calimero-specific directory, please clean manually
+		fi
 	fi
 	# Check on zero for $CALIMERO_SERVER_PATH to avoid "cleaning" the wrong directory
 	if [ ! -z $CALIMERO_SERVER_PATH ] && [ -d $CALIMERO_SERVER_PATH ]; then
-		rm -r $CALIMERO_SERVER_PATH
+		if [[ $CALIMERO_SERVER_PATH == *"calimero"* ]]; then
+			rm -r $CALIMERO_SERVER_PATH
+		else
+			echo $CALIMERO_SERVER_PATH does not seem to be a calimero-specific directory, please clean manually
+		fi
 	fi
 	exit 0
 elif [ "$1" = "tpuart" ] || [ "$1" = "--tpuart" ];then
@@ -459,10 +468,10 @@ cat > $BIN_PATH/knxtools <<EOF
 #
 # This script is a wrapper to call the calimero tools simply
 # from a shell without the java/maven/gradle overhead
-# It set some default parameters to known calimero tools 
+# It sets some default parameters to known calimero tools 
 #
 if [ -z \$1 ]; then
-    echo Please specify an command, Available commands:
+    echo Please specify a command, available commands:
     echo "   discover"
     echo "   describe"
     echo "   scan"
