@@ -69,6 +69,7 @@ export KNX_SERVER_NAME="Calimero KNXnet/IP Server"
 # Usage
 if [ "$1" = "-?" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ];then
 	echo Usage $0 "[tpuart|usb|tunnel ip-tunnel-endpoint|clean]"
+	echo "    clean        deletes directories" $CALIMERO_BUILD and $CALIMERO_SERVER_PATH
 	exit 0
 fi
 ###############################################################################
@@ -99,11 +100,19 @@ elif [ "$1" = "tunnel" ] || [ "$1" = "--tunnel" ];then
 elif [ "$1" = "clean" ]; then
 	# Check on zero for $CALIMERO_BUILD to avoid "cleaning" the wrong directory
 	if [ ! -z $CALIMERO_BUILD ] && [ -d $CALIMERO_BUILD ]; then
-		rm -r $CALIMERO_BUILD
+		if [[ $CALIMERO_BUILD == *"calimero"* ]]; then
+			rm -r $CALIMERO_BUILD
+		else
+			echo $CALIMERO_BUILD does not seem to be a calimero-specific directory, please clean manually
+		fi
 	fi
 	# Check on zero for $CALIMERO_SERVER_PATH to avoid "cleaning" the wrong directory
 	if [ ! -z $CALIMERO_SERVER_PATH ] && [ -d $CALIMERO_SERVER_PATH ]; then
-		rm -r $CALIMERO_SERVER_PATH
+		if [[ $CALIMERO_SERVER_PATH == *"calimero"* ]]; then
+			rm -r $CALIMERO_SERVER_PATH
+		else
+			echo $CALIMERO_SERVER_PATH does not seem to be a calimero-specific directory, please clean manually
+		fi
 	fi
 	exit 0
 elif [ "$1" = "tpuart" ] || [ "$1" = "--tpuart" ];then
@@ -459,10 +468,10 @@ cat > $BIN_PATH/knxtools <<EOF
 #
 # This script is a wrapper to call the calimero tools simply
 # from a shell without the java/maven/gradle overhead
-# It set some default parameters to known calimero tools 
+# It sets some default parameters to known calimero tools 
 #
 if [ -z \$1 ]; then
-    echo Please specify an command, Available commands:
+    echo Please specify a command, available commands:
     echo "   discover"
     echo "   describe"
     echo "   scan"
@@ -482,16 +491,16 @@ if [ "\$1" = "properties" ]; then
     else
         export PARAM2=\$2
     fi 
-    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-rc2.jar \$1 -d $CALIMERO_CONFIG_PATH/properties.xml \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
+    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4*.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
 elif [ "\$1" = "discover" ]; then 	
-    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-rc2.jar \$@
+    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4*.jar \$@
 else
     if  [ -z "\$2" ]  || [ "\$2" = "-?" ] || [ "\$2" = "-h" ]; then
         export PARAM2=--help
     else
         export PARAM2=\$2
     fi 
-    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4-rc2.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
+    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4*.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
 fi
 EOF
 chmod +x $BIN_PATH/knxtools
@@ -660,6 +669,7 @@ Type=simple
 User=$CALIMERO_SERVER_USER
 Group=$CALIMERO_SERVER_GROUP
 #TimeoutStartSec=60
+SuccessExitStatus=0 143
 
 [Install]
 WantedBy=multi-user.target network-online.target
