@@ -30,14 +30,17 @@ set -e
 # 20180629-053500: changed copy calimero-tools-2.4-*.jar instead of SNAPSHOT
 # 20180702-054500: Removed detach server process from console patch and instead added new --no-stdin command line option to systemd service file. Set default KNX Address to a valid coupler address
 # 20180706-054000: knxtools script adjusted to calimero-tools-2.4-rc2.jar
+# please see https://github.com/Race666/calimero-server for the latest changes
 #
-# version:20180706-054000
+# version:20190613-053000 
+# 
 #
 ###############################################################################
 ################################## Constants ##################################
 export CALIMERO_BUILD=~/calimero-build
 # export JAVA_LIB_PATH=/usr/java/packages/lib/arm
 export CALIMERO_SERVER_PATH=/opt/calimero-server
+export CALIMERO_TOOLS_PATH=/opt/calimero-tools
 export CALIMERO_CONFIG_PATH=/etc/calimero
 # Bin Path
 export BIN_PATH=/usr/local/bin
@@ -65,11 +68,16 @@ export CALIMERO_SERVER_USER=knx
 export CALIMERO_SERVER_GROUP=knx
 # KNX Server Name
 export KNX_SERVER_NAME="Calimero KNXnet/IP Server"
+# Branch to use 
+export GIT_BRANCH="release/2.4"
+# Build for Tools with master branch failed at 20190612 -> 2.4 release
+export GIT_BRANCH_TOOLS="release/2.4"
+# export GIT_BRANCH="master"
 ###############################################################################
 # Usage
 if [ "$1" = "-?" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ];then
 	echo Usage $0 "[tpuart|usb|tunnel ip-tunnel-endpoint|clean]"
-	echo "    clean        deletes directories" $CALIMERO_BUILD and $CALIMERO_SERVER_PATH
+	echo "    clean        deletes directories" $CALIMERO_BUILD, $CALIMERO_TOOLS_PATH and $CALIMERO_SERVER_PATH
 	exit 0
 fi
 ###############################################################################
@@ -114,6 +122,14 @@ elif [ "$1" = "clean" ]; then
 			echo $CALIMERO_SERVER_PATH does not seem to be a calimero-specific directory, please clean manually
 		fi
 	fi
+	# Check on zero for $CALIMERO_TOOLS_PATH to avoid "cleaning" the wrong directory
+	if [ ! -z $CALIMERO_TOOLS_PATH ] && [ -d $CALIMERO_TOOLS_PATH ]; then
+		if [[ $CALIMERO_TOOLS_PATH == *"calimero"* ]]; then
+			rm -r $CALIMERO_TOOLS_PATH
+		else
+			echo $CALIMERO_TOOLS_PATH does not seem to be a calimero-specific directory, please clean manually
+		fi
+	fi	
 	exit 0
 elif [ "$1" = "tpuart" ] || [ "$1" = "--tpuart" ];then
     echo Configure support for TPUART
@@ -190,6 +206,7 @@ if [ ! -d $CALIMERO_BUILD ]; then
 fi 
 # Server and config path
 mkdir -p $CALIMERO_SERVER_PATH
+mkdir -p $CALIMERO_TOOLS_PATH
 mkdir -p $CALIMERO_CONFIG_PATH
 
 ########################## Requiered packages #################################
@@ -203,7 +220,7 @@ apt-get -y install build-essential cmake
 apt-get -y install automake autoconf libtool 
 apt-get -y install dirmngr 
 apt-get -y install net-tools software-properties-common xmlstarlet debconf-utils crudini
-
+########################### Java ##############################################
 if [ $HARDWARE = "Raspi" ]; then
     apt-get install oracle-java8-jdk
 	# update-default
@@ -219,19 +236,27 @@ EOF
 	chmod +x /etc/profile.d/jdk.sh
 	. /etc/profile.d/jdk.sh
 else
-	# https://wiki.ubuntuusers.de/debconf/
-	# debconf-show oracle-java8-installer
-	# echo "set shared/accepted-oracle-license-v1-1 true"|debconf-communicate
-	# install Oracle Java
-	apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys EEA14886
-	apt-add-repository 'deb http://ppa.launchpad.net/webupd8team/java/ubuntu xenial main'
-	apt-add-repository -s 'deb http://ppa.launchpad.net/webupd8team/java/ubuntu xenial main'
-	apt-get update 
-	echo debconf shared/accepted-oracle-license-v1-1 select true |debconf-set-selections
-	echo debconf shared/accepted-oracle-license-v1-1 seen true |debconf-set-selections
-	apt-get -y install oracle-java8-installer
-	apt-get -y install oracle-java8-set-default
-	export JAVA_HOME_PATH=/usr/lib/jvm/java-8-oracle
+	apt-cache show openjdk-11-jdk-headless > /dev/null 2>&1 
+	if [ $? -eq 0 ]; then
+		echo "Installing OpenJDK 11"
+		apt-get install -y openjdk-11-jdk-headless
+	else
+		if [ "$GIT_BRANCH" = "master" ] || [ "$GIT_TOOLS_BRANCH" = "master" ]; then
+			echo "Master branch requieres a Java version > 8"
+			echo "Consider to use the backports repository to get the latest openjdk verion"
+			exit 200
+		fi
+		apt-cache show openjdk-8-jdk-headless > /dev/null 2>&1 
+		if [ $? -eq 0 ]; then
+			echo "Installing OpenJDK 8"
+			apt-get install -y openjdk-8-jdk-headless
+		else
+			echo "No suitable Java Version found!"	
+			exit 200
+		fi
+	fi
+	
+	export JAVA_HOME_PATH=$(readlink -e /usr/bin/javac |sed -e's/\/bin\/javac//')
 fi
 # Check for Java bin
 if [ ! -f $JAVA_HOME_PATH/bin/java ]; then
@@ -388,16 +413,16 @@ clone_update_repo() {
 ############################# Build ###########################################
 # calimero-core
 cd $CALIMERO_BUILD
-clone_update_repo calimero-core "release/2.4"
+clone_update_repo calimero-core $GIT_BRANCH
 ./gradlew install -x test
-cp ./build/libs/calimero-core-2.4*.jar $CALIMERO_SERVER_PATH
-rm $CALIMERO_SERVER_PATH/calimero-core-2.4-*test*.jar
+cp ./build/libs/calimero-core-2.*.jar $CALIMERO_SERVER_PATH
+find $CALIMERO_SERVER_PATH -type f -name "calimero-core-*test*.jar" -exec rm -f {} \;
 
 # calimero device
 cd $CALIMERO_BUILD
-clone_update_repo calimero-device "release/2.4"
+clone_update_repo calimero-device $GIT_BRANCH
 ./gradlew install -x test
-cp ./build/libs/calimero-device-2.4*.jar $CALIMERO_SERVER_PATH
+cp ./build/libs/calimero-device-2.*.jar $CALIMERO_SERVER_PATH
 
 # serial-native
 cd $CALIMERO_BUILD
@@ -418,17 +443,17 @@ fi
 
 # calimero-rxtx
 cd $CALIMERO_BUILD
-clone_update_repo calimero-rxtx "release/2.4"
+clone_update_repo calimero-rxtx $GIT_BRANCH
 ./gradlew build install
-cp ./build/libs/calimero-rxtx-2.4*.jar $CALIMERO_SERVER_PATH
+cp ./build/libs/calimero-rxtx-2.*.jar $CALIMERO_SERVER_PATH
 
 # calimero-server
 cd $CALIMERO_BUILD
-clone_update_repo calimero-server "release/2.4"
+clone_update_repo calimero-server $GIT_BRANCH
 
 # mvn compile
 ./gradlew build
-cp ./build/libs/calimero-server-2.4*.jar $CALIMERO_SERVER_PATH
+cp ./build/libs/calimero-server-2.*.jar $CALIMERO_SERVER_PATH
 
 
 # list dependencies
@@ -456,12 +481,38 @@ cp ./build/libs/calimero-server-2.4*.jar $CALIMERO_SERVER_PATH
 # [INFO] +- org.slf4j:slf4j-simple:jar:1.8.0-alpha2:runtime
 # [INFO] +- org.slf4j:slf4j-api:jar:1.8.0-alpha2:compile
 
+echo Copy libs
+echo "Copy libs to " $CALIMERO_SERVER_PATH
+find ~ -name "slf4j-api-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+find ~ -name "slf4j-simple-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+find ~ -name "usb4java-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+find ~ -name "usb4java-javax-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+find ~ -name "usb-api-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+if [ "$ARCH" = "ARM" ]; then
+	find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+elif [ "$ARCH" = "X64" ]; then
+		find ~ -name "libusb4java-*-linux-x86_64.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+fi
+# find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+# find ~ -name "libusb4java-*-linux-x86_64.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+find ~ -name "commons-lang3-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+find ~ -name "stax-api-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+find ~ -name "nrjavaserial-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+find ~ -name "commons-net-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 
 ########################## Calimero Client Tools ##############################
+# calimero-core for tools
 cd $CALIMERO_BUILD
-clone_update_repo calimero-tools "release/2.4"
+clone_update_repo calimero-core $GIT_BRANCH_TOOLS
+./gradlew install -x test
+cp ./build/libs/calimero-core-2.*.jar $CALIMERO_TOOLS_PATH
+find $CALIMERO_TOOLS_PATH -type f -name "calimero-core-*test*.jar" -exec rm -f {} \;
+
+
+
+clone_update_repo calimero-tools $GIT_BRANCH_TOOLS
 ./gradlew assemble
-cp ./build/libs/calimero-tools-2.4*.jar $CALIMERO_SERVER_PATH
+cp ./build/libs/calimero-tools-2.*.jar $CALIMERO_TOOLS_PATH
 # Tools wrapper
 cat > $BIN_PATH/knxtools <<EOF
 #!/bin/sh
@@ -474,6 +525,7 @@ if [ -z \$1 ]; then
     echo Please specify a command, available commands:
     echo "   discover"
     echo "   describe"
+    echo "   devinfo"
     echo "   scan"
     echo "   ipconfig"
     echo "   monitor"
@@ -491,29 +543,63 @@ if [ "\$1" = "properties" ]; then
     else
         export PARAM2=\$2
     fi 
-    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4*.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
+    java -jar $CALIMERO_TOOLS_PATH/calimero-tools-2.*.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
 elif [ "\$1" = "discover" ]; then 	
-    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4*.jar \$@
+    java -jar $CALIMERO_TOOLS_PATH/calimero-tools-2.*.jar \$@
 else
     if  [ -z "\$2" ]  || [ "\$2" = "-?" ] || [ "\$2" = "-h" ]; then
         export PARAM2=--help
     else
         export PARAM2=\$2
     fi 
-    java -jar $CALIMERO_SERVER_PATH/calimero-tools-2.4*.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
+    java -jar $CALIMERO_TOOLS_PATH/calimero-tools-2.*.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
 fi
 EOF
 chmod +x $BIN_PATH/knxtools
 # Test 
 # knxtools monitor --medium knxip 192.168.200.1 --localhost 192.168.200.1 -c
 # knxtools groupmon -m knxip 192.168.200.1 --localhost 192.168.200.1 -v
+#################################### Copy requiered libs ######################
+# find ~ -name "calimero-core-2.4-SNAPSHOT.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+# find ~ -name "calimero-device-2.4-SNAPSHOT.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+# find ~ -name "slf4j-api-1.8.0-beta1.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+# find ~ -name "slf4j-simple-1.8.0-beta1.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+# find ~ -name "usb4java-1.2.0.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+# find ~ -name "usb4java-javax-1.2.0.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+# find ~ -name "usb-api-1.0.2.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+# #find ~ -name " libusb4java-1.2.0-linux-arm.jar -exec cp {} $CALIMERO_SERVER_PATH \;
+# find ~ -name "libusb4java-1.2.0-linux-x86_64.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+# find ~ -name "commons-lang3-3.2.1.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+# find ~ -name "stax-api-1.0-2.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+# find ~ -name "nrjavaserial-3.13.0.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+# find ~ -name "commons-net-3.3.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+echo Copy libs
+echo "Copy libs to " $CALIMERO_TOOLS_PATH
+find ~ -name "slf4j-api-1.8.0-beta*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+find ~ -name "slf4j-simple-1.8.0-beta*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+find ~ -name "usb4java-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+find ~ -name "usb4java-javax-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+find ~ -name "usb-api-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+if [ "$ARCH" = "ARM" ]; then
+	find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+elif [ "$ARCH" = "X64" ]; then
+		find ~ -name "libusb4java-*-linux-x86_64.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+fi
+# find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+# find ~ -name "libusb4java-*-linux-x86_64.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+find ~ -name "commons-lang3-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+find ~ -name "stax-api-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+find ~ -name "nrjavaserial-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+find ~ -name "commons-net-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
 
 
 ############################################ Config files #####################
 echo Copy config files
 # Copy config files
 cp $CALIMERO_BUILD/calimero-server/resources/server-config.xml $CALIMERO_CONFIG_PATH
-cp $CALIMERO_BUILD/calimero-server/resources/properties.xml $CALIMERO_CONFIG_PATH
+if [ -f $CALIMERO_BUILD/calimero-server/resources/properties.xml ]; then
+	cp $CALIMERO_BUILD/calimero-server/resources/properties.xml $CALIMERO_CONFIG_PATH
+fi	
 
 ############################## Configure calimero  ############################
 cp $CALIMERO_CONFIG_PATH/server-config.xml $CALIMERO_CONFIG_PATH/server-config.xml.org
@@ -559,6 +645,8 @@ sed -e"s/\/dev\/ttyACM[[:digit:]]/\/dev\/$SERIAL_INTERFACE/g" $CALIMERO_CONFIG_P
 # Comment existing group address filter
 sed -e's/\(<groupAddressFilter>\)/<!-- \1/g' $CALIMERO_CONFIG_PATH/server-config.xml  --in-place=.bak
 sed -e's/\(<\/groupAddressFilter>\)/\1 -->/g' $CALIMERO_CONFIG_PATH/server-config.xml  --in-place=.bak
+# Comment routing tag
+sed -e's/[^<^!^\-^\-]\s\{1,\}\(<routing.*<\/routing>\)/<!-- \1 -->/g' $CALIMERO_CONFIG_PATH/server-config.xml  --in-place=.bak
 # Add empty groupAddressFilter
 xmlstarlet ed --inplace -s 'knxServer/serviceContainer' -t elem -n groupAddressFilter $CALIMERO_CONFIG_PATH/server-config.xml
 
@@ -578,42 +666,13 @@ done
 xmlstarlet ed  --inplace -s 'knxServer/serviceContainer/additionalAddresses/knxAddress' -t attr -n type -v individual $CALIMERO_CONFIG_PATH/server-config.xml
 
 
-#################################### Copy requiered libs ######################
-# find ~ -name "calimero-core-2.4-SNAPSHOT.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-# find ~ -name "calimero-device-2.4-SNAPSHOT.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-# find ~ -name "slf4j-api-1.8.0-beta1.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-# find ~ -name "slf4j-simple-1.8.0-beta1.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-# find ~ -name "usb4java-1.2.0.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-# find ~ -name "usb4java-javax-1.2.0.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-# find ~ -name "usb-api-1.0.2.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-# #find ~ -name " libusb4java-1.2.0-linux-arm.jar -exec cp {} $CALIMERO_SERVER_PATH \;
-# find ~ -name "libusb4java-1.2.0-linux-x86_64.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-# find ~ -name "commons-lang3-3.2.1.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-# find ~ -name "stax-api-1.0-2.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-# find ~ -name "nrjavaserial-3.13.0.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-# find ~ -name "commons-net-3.3.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-echo Copy libs
-find ~ -name "slf4j-api-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-find ~ -name "slf4j-simple-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-find ~ -name "usb4java-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-find ~ -name "usb4java-javax-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-find ~ -name "usb-api-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-if [ "$ARCH" = "ARM" ]; then
-	find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-elif [ "$ARCH" = "X64" ]; then
-	find ~ -name "libusb4java-*-linux-x86_64.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-fi
-# find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-# find ~ -name "libusb4java-*-linux-x86_64.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-find ~ -name "commons-lang3-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-find ~ -name "stax-api-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-find ~ -name "nrjavaserial-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-find ~ -name "commons-net-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 
 # Set owner on server and config path. Need to be discussed. Read/execute permissions should sufficient
 echo Set owner
-chown -R $CALIMERO_SERVER_USER:$CALIMERO_SERVER_GROUP $CALIMERO_CONFIG_PATH
+chown -R $CALIMERO_SERVER_USER:$CALIMERO_SERVER_GROUP $CALIMERO_TOOLS_PATH
 chown -R $CALIMERO_SERVER_USER:$CALIMERO_SERVER_GROUP $CALIMERO_SERVER_PATH
+chown -R $CALIMERO_SERVER_USER:$CALIMERO_SERVER_GROUP $CALIMERO_CONFIG_PATH
+
 
 ###################### Serial interface #######################################
 # Configure serial devices depending on the underlying hardware
@@ -654,7 +713,7 @@ fi
 # java -cp "$CALIMERO_SERVER_PATH/*" tuwien.auto.calimero.server.Launcher $CALIMERO_CONFIG_PATH/server-config.xml -Dorg.slf4j.simpleLogger.defaultLogLevel=info
 # Systemd knx unit
 echo Create systemd service
-cat >  /lib/systemd/system/knx.service <<EOF
+cat >  /etc/systemd/system/knx.service <<EOF
 [Unit]
 Description=Calimero KNX Daemon
 After=network.target
