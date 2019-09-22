@@ -643,12 +643,16 @@ sed -e"s/\/dev\/ttyS[[:digit:]]/\/dev\/$SERIAL_INTERFACE/g" $CALIMERO_CONFIG_PAT
 # Replace serial device /dev/ttyACMx => $SERIAL_INTERFACE
 sed -e"s/\/dev\/ttyACM[[:digit:]]/\/dev\/$SERIAL_INTERFACE/g" $CALIMERO_CONFIG_PATH/server-config.xml --in-place=.bak
 # Comment existing group address filter
+if [ "$GIT_BRANCH" = "master" ];then
+    : # nothing to do, config template does not have active group address filter
+else
 sed -e's/\(<groupAddressFilter>\)/<!-- \1/g' $CALIMERO_CONFIG_PATH/server-config.xml  --in-place=.bak
 sed -e's/\(<\/groupAddressFilter>\)/\1 -->/g' $CALIMERO_CONFIG_PATH/server-config.xml  --in-place=.bak
+    xmlstarlet ed --inplace -s 'knxServer/serviceContainer' -t elem -n groupAddressFilter $CALIMERO_CONFIG_PATH/server-config.xml
+fi
 # Comment routing tag
 sed -e's/[^<^!^\-^\-]\s\{1,\}\(<routing.*<\/routing>\)/<!-- \1 -->/g' $CALIMERO_CONFIG_PATH/server-config.xml  --in-place=.bak
 # Add empty groupAddressFilter
-xmlstarlet ed --inplace -s 'knxServer/serviceContainer' -t elem -n groupAddressFilter $CALIMERO_CONFIG_PATH/server-config.xml
 
 ######### Addresses assigned to KNXnet/IP Clients 
 # Remove existing
