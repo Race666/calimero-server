@@ -514,7 +514,17 @@ find $CALIMERO_TOOLS_PATH -type f -name "calimero-core-*test*.jar" -exec rm -f {
 cd $CALIMERO_BUILD
 clone_update_repo calimero-tools $GIT_BRANCH_TOOLS
 ./gradlew assemble
-cp ./build/libs/calimero-tools-2.*.jar $CALIMERO_TOOLS_PATH
+
+export CALIMERO_TMP="/tmp/calimero"
+
+rm -rf $CALIMERO_TMP
+mkdir $CALIMERO_TMP
+unzip -o build/distributions/calimero-tools-*.zip -d $CALIMERO_TMP
+
+#cp ./build/libs/calimero-tools-2.*.jar $CALIMERO_TOOLS_PATH
+echo "Copy libs to " $CALIMERO_TOOLS_PATH
+export DIST_TOOLS_FOLDER="$(find $CALIMERO_TMP -name "calimero-tools-*" -type d)"
+mv $DIST_TOOLS_FOLDER/lib/* $CALIMERO_TOOLS_PATH
 # Tools wrapper
 cat > $BIN_PATH/knxtools <<EOF
 #!/bin/sh
@@ -576,23 +586,23 @@ chmod +x $BIN_PATH/knxtools
 # find ~ -name "nrjavaserial-3.13.0.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 # find ~ -name "commons-net-3.3.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 
-echo "Copy libs to " $CALIMERO_TOOLS_PATH
-find ~ -name "slf4j-api-1.8.0-beta*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-find ~ -name "slf4j-simple-1.8.0-beta*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-find ~ -name "usb4java-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-find ~ -name "usb4java-javax-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-find ~ -name "usb-api-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-if [ "$ARCH" = "ARM" ]; then
-	find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-elif [ "$ARCH" = "X64" ]; then
-		find ~ -name "libusb4java-*-linux-x86_64.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-fi
+#echo "Copy libs to " $CALIMERO_TOOLS_PATH
+#find ~ -name "slf4j-api-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "slf4j-simple-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "usb4java-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "usb4java-javax-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "usb-api-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#if [ "$ARCH" = "ARM" ]; then
+#	find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#elif [ "$ARCH" = "X64" ]; then
+#		find ~ -name "libusb4java-*-linux-x86_64.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#fi
 # find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 # find ~ -name "libusb4java-*-linux-x86_64.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-find ~ -name "commons-lang3-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-find ~ -name "stax-api-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-find ~ -name "nrjavaserial-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-find ~ -name "commons-net-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "commons-lang3-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "stax-api-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "nrjavaserial-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "commons-net-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
 
 
 ############################################ Config files #####################
