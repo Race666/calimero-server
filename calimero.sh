@@ -377,6 +377,7 @@ EOF
 # clones the repo if the directory doesn't exist, otherwise pulls while preserving local changes
 # $1 name of repository, $2 is the branch to checkout
 clone_update_repo() {
+	echo ""
 	if [ -d $1 ]; then
 		cd $1
 
@@ -481,7 +482,7 @@ cp ./build/libs/calimero-server-2.*.jar $CALIMERO_SERVER_PATH
 # [INFO] +- org.slf4j:slf4j-simple:jar:1.8.0-alpha2:runtime
 # [INFO] +- org.slf4j:slf4j-api:jar:1.8.0-alpha2:compile
 
-echo Copy libs
+
 echo "Copy libs to " $CALIMERO_SERVER_PATH
 find ~ -name "slf4j-api-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 find ~ -name "slf4j-simple-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
@@ -509,7 +510,7 @@ cp ./build/libs/calimero-core-2.*.jar $CALIMERO_TOOLS_PATH
 find $CALIMERO_TOOLS_PATH -type f -name "calimero-core-*test*.jar" -exec rm -f {} \;
 
 
-
+cd $CALIMERO_BUILD
 clone_update_repo calimero-tools $GIT_BRANCH_TOOLS
 ./gradlew assemble
 cp ./build/libs/calimero-tools-2.*.jar $CALIMERO_TOOLS_PATH
@@ -573,7 +574,7 @@ chmod +x $BIN_PATH/knxtools
 # find ~ -name "stax-api-1.0-2.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 # find ~ -name "nrjavaserial-3.13.0.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 # find ~ -name "commons-net-3.3.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-echo Copy libs
+
 echo "Copy libs to " $CALIMERO_TOOLS_PATH
 find ~ -name "slf4j-api-1.8.0-beta*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
 find ~ -name "slf4j-simple-1.8.0-beta*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
