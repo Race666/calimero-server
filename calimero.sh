@@ -310,6 +310,7 @@ getent passwd pi
 if [ $? -eq 0 ]; then
 	usermod -a -G $CALIMERO_SERVER_GROUP pi
 fi	
+usermod -a -G $CALIMERO_SERVER_GROUP $(logname)
 set -e
 
 # Create home
