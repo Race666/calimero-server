@@ -220,6 +220,7 @@ apt-get -y install build-essential cmake
 apt-get -y install automake autoconf libtool 
 apt-get -y install dirmngr 
 apt-get -y install net-tools software-properties-common xmlstarlet debconf-utils crudini
+apt-get -y install unzip
 ########################### Java ##############################################
 if [ $HARDWARE = "Raspi" ]; then
     apt-get install oracle-java8-jdk
@@ -310,6 +311,7 @@ getent passwd pi
 if [ $? -eq 0 ]; then
 	usermod -a -G $CALIMERO_SERVER_GROUP pi
 fi	
+usermod -a -G $CALIMERO_SERVER_GROUP $(logname)
 set -e
 
 # Create home
@@ -377,6 +379,7 @@ EOF
 # clones the repo if the directory doesn't exist, otherwise pulls while preserving local changes
 # $1 name of repository, $2 is the branch to checkout
 clone_update_repo() {
+	echo ""
 	if [ -d $1 ]; then
 		cd $1
 
@@ -481,7 +484,7 @@ cp ./build/libs/calimero-server-2.*.jar $CALIMERO_SERVER_PATH
 # [INFO] +- org.slf4j:slf4j-simple:jar:1.8.0-alpha2:runtime
 # [INFO] +- org.slf4j:slf4j-api:jar:1.8.0-alpha2:compile
 
-echo Copy libs
+
 echo "Copy libs to " $CALIMERO_SERVER_PATH
 find ~ -name "slf4j-api-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 find ~ -name "slf4j-simple-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
@@ -509,10 +512,20 @@ cp ./build/libs/calimero-core-2.*.jar $CALIMERO_TOOLS_PATH
 find $CALIMERO_TOOLS_PATH -type f -name "calimero-core-*test*.jar" -exec rm -f {} \;
 
 
-
+cd $CALIMERO_BUILD
 clone_update_repo calimero-tools $GIT_BRANCH_TOOLS
 ./gradlew assemble
-cp ./build/libs/calimero-tools-2.*.jar $CALIMERO_TOOLS_PATH
+
+export CALIMERO_TMP="/tmp/calimero"
+
+rm -rf $CALIMERO_TMP
+mkdir $CALIMERO_TMP
+unzip -o build/distributions/calimero-tools-*.zip -d $CALIMERO_TMP
+
+#cp ./build/libs/calimero-tools-2.*.jar $CALIMERO_TOOLS_PATH
+echo "Copy libs to " $CALIMERO_TOOLS_PATH
+export DIST_TOOLS_FOLDER="$(find $CALIMERO_TMP -name "calimero-tools-*" -type d)"
+mv $DIST_TOOLS_FOLDER/lib/* $CALIMERO_TOOLS_PATH
 # Tools wrapper
 cat > $BIN_PATH/knxtools <<EOF
 #!/bin/sh
@@ -543,16 +556,16 @@ if [ "\$1" = "properties" ]; then
     else
         export PARAM2=\$2
     fi 
-    java -jar $CALIMERO_TOOLS_PATH/calimero-tools-2.*.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
+    java \$KNXTOOLS_JVM_OPTS -jar $CALIMERO_TOOLS_PATH/calimero-tools-2.*.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
 elif [ "\$1" = "discover" ]; then 	
-    java -jar $CALIMERO_TOOLS_PATH/calimero-tools-2.*.jar \$@
+    java \$KNXTOOLS_JVM_OPTS -jar $CALIMERO_TOOLS_PATH/calimero-tools-2.*.jar \$@
 else
     if  [ -z "\$2" ]  || [ "\$2" = "-?" ] || [ "\$2" = "-h" ]; then
         export PARAM2=--help
     else
         export PARAM2=\$2
     fi 
-    java -jar $CALIMERO_TOOLS_PATH/calimero-tools-2.*.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
+    java \$KNXTOOLS_JVM_OPTS -jar $CALIMERO_TOOLS_PATH/calimero-tools-2.*.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
 fi
 EOF
 chmod +x $BIN_PATH/knxtools
@@ -573,24 +586,24 @@ chmod +x $BIN_PATH/knxtools
 # find ~ -name "stax-api-1.0-2.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 # find ~ -name "nrjavaserial-3.13.0.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 # find ~ -name "commons-net-3.3.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-echo Copy libs
-echo "Copy libs to " $CALIMERO_TOOLS_PATH
-find ~ -name "slf4j-api-1.8.0-beta*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-find ~ -name "slf4j-simple-1.8.0-beta*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-find ~ -name "usb4java-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-find ~ -name "usb4java-javax-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-find ~ -name "usb-api-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-if [ "$ARCH" = "ARM" ]; then
-	find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-elif [ "$ARCH" = "X64" ]; then
-		find ~ -name "libusb4java-*-linux-x86_64.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-fi
+
+#echo "Copy libs to " $CALIMERO_TOOLS_PATH
+#find ~ -name "slf4j-api-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "slf4j-simple-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "usb4java-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "usb4java-javax-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "usb-api-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#if [ "$ARCH" = "ARM" ]; then
+#	find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#elif [ "$ARCH" = "X64" ]; then
+#		find ~ -name "libusb4java-*-linux-x86_64.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#fi
 # find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 # find ~ -name "libusb4java-*-linux-x86_64.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-find ~ -name "commons-lang3-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-find ~ -name "stax-api-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-find ~ -name "nrjavaserial-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
-find ~ -name "commons-net-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "commons-lang3-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "stax-api-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "nrjavaserial-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
+#find ~ -name "commons-net-*.jar" -exec cp {} $CALIMERO_TOOLS_PATH \;
 
 
 ############################################ Config files #####################
@@ -643,12 +656,16 @@ sed -e"s/\/dev\/ttyS[[:digit:]]/\/dev\/$SERIAL_INTERFACE/g" $CALIMERO_CONFIG_PAT
 # Replace serial device /dev/ttyACMx => $SERIAL_INTERFACE
 sed -e"s/\/dev\/ttyACM[[:digit:]]/\/dev\/$SERIAL_INTERFACE/g" $CALIMERO_CONFIG_PATH/server-config.xml --in-place=.bak
 # Comment existing group address filter
+if [ "$GIT_BRANCH" = "master" ];then
+    : # nothing to do, config template does not have active group address filter
+else
 sed -e's/\(<groupAddressFilter>\)/<!-- \1/g' $CALIMERO_CONFIG_PATH/server-config.xml  --in-place=.bak
 sed -e's/\(<\/groupAddressFilter>\)/\1 -->/g' $CALIMERO_CONFIG_PATH/server-config.xml  --in-place=.bak
+    xmlstarlet ed --inplace -s 'knxServer/serviceContainer' -t elem -n groupAddressFilter $CALIMERO_CONFIG_PATH/server-config.xml
+fi
 # Comment routing tag
 sed -e's/[^<^!^\-^\-]\s\{1,\}\(<routing.*<\/routing>\)/<!-- \1 -->/g' $CALIMERO_CONFIG_PATH/server-config.xml  --in-place=.bak
 # Add empty groupAddressFilter
-xmlstarlet ed --inplace -s 'knxServer/serviceContainer' -t elem -n groupAddressFilter $CALIMERO_CONFIG_PATH/server-config.xml
 
 ######### Addresses assigned to KNXnet/IP Clients 
 # Remove existing
