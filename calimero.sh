@@ -30,9 +30,11 @@ set -e
 # 20180629-053500: changed copy calimero-tools-2.4-*.jar instead of SNAPSHOT
 # 20180702-054500: Removed detach server process from console patch and instead added new --no-stdin command line option to systemd service file. Set default KNX Address to a valid coupler address
 # 20180706-054000: knxtools script adjusted to calimero-tools-2.4-rc2.jar
+# 20190925-121000: Oracle Java -> OpenJDK
+#
 # please see https://github.com/Race666/calimero-server for the latest changes
 #
-# version:20190613-053000 
+# version:0190925-121000 
 # 
 #
 ###############################################################################
@@ -222,43 +224,27 @@ apt-get -y install dirmngr
 apt-get -y install net-tools software-properties-common xmlstarlet debconf-utils crudini
 apt-get -y install unzip
 ########################### Java ##############################################
-if [ $HARDWARE = "Raspi" ]; then
-    apt-get install oracle-java8-jdk
-	# update-default
-	update-java-alternatives -s jdk-8-oracle-arm32-vfp-hflt
-	export JAVA_HOME_PATH=/usr/lib/jvm/jdk-8-oracle-arm32-vfp-hflt
-	cat >/etc/profile.d/jdk.sh<<EOF
-	export J2SDKDIR=$JAVA_HOME_PATH
-	export J2REDIR=$JAVA_HOME_PATH/jre
-	export PATH=$PATH:$JAVA_HOME_PATH/bin:$JAVA_HOME_PATH/db/bin:$JAVA_HOME_PATH/jre/bin
-	export JAVA_HOME=$JAVA_HOME_PATH
-	export DERBY_HOME=$JAVA_HOME_PATH/db
-EOF
-	chmod +x /etc/profile.d/jdk.sh
-	. /etc/profile.d/jdk.sh
+apt-cache show openjdk-11-jdk-headless > /dev/null 2>&1 
+if [ $? -eq 0 ]; then
+	echo "Installing OpenJDK 11"
+	apt-get install -y openjdk-11-jdk-headless
 else
-	apt-cache show openjdk-11-jdk-headless > /dev/null 2>&1 
-	if [ $? -eq 0 ]; then
-		echo "Installing OpenJDK 11"
-		apt-get install -y openjdk-11-jdk-headless
-	else
-		if [ "$GIT_BRANCH" = "master" ] || [ "$GIT_TOOLS_BRANCH" = "master" ]; then
-			echo "Master branch requieres a Java version > 8"
-			echo "Consider to use the backports repository to get the latest openjdk verion"
-			exit 200
-		fi
-		apt-cache show openjdk-8-jdk-headless > /dev/null 2>&1 
-		if [ $? -eq 0 ]; then
-			echo "Installing OpenJDK 8"
-			apt-get install -y openjdk-8-jdk-headless
-		else
-			echo "No suitable Java Version found!"	
-			exit 200
-		fi
+	if [ "$GIT_BRANCH" = "master" ] || [ "$GIT_TOOLS_BRANCH" = "master" ]; then
+		echo "Master branch requieres a Java version > 8"
+		echo "Consider to use the backports repository to get the latest openjdk verion"
+		exit 200
 	fi
-	
-	export JAVA_HOME_PATH=$(readlink -e /usr/bin/javac |sed -e's/\/bin\/javac//')
+	apt-cache show openjdk-8-jdk-headless > /dev/null 2>&1 
+	if [ $? -eq 0 ]; then
+		echo "Installing OpenJDK 8"
+		apt-get install -y openjdk-8-jdk-headless
+	else
+		echo "No suitable Java Version found!"	
+		exit 200
+	fi
 fi
+export JAVA_HOME_PATH=$(readlink -e /usr/bin/javac |sed -e's/\/bin\/javac//')
+
 # Check for Java bin
 if [ ! -f $JAVA_HOME_PATH/bin/java ]; then
     echo Java not found in path $JAVA_HOME_PATH!
