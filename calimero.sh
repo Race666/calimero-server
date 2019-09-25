@@ -220,6 +220,7 @@ apt-get -y install build-essential cmake
 apt-get -y install automake autoconf libtool 
 apt-get -y install dirmngr 
 apt-get -y install net-tools software-properties-common xmlstarlet debconf-utils crudini
+apt-get -y unzip
 ########################### Java ##############################################
 if [ $HARDWARE = "Raspi" ]; then
     apt-get install oracle-java8-jdk
