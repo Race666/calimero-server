@@ -480,7 +480,7 @@ find ~ -name "usb-api-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 if [ "$ARCH" = "ARM" ]; then
 	find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 elif [ "$ARCH" = "X64" ]; then
-		find ~ -name "libusb4java-*-linux-x86_64.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+		find ~ -name "libusb4java-*-linux-x86*64.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 fi
 # find ~ -name "libusb4java-*-linux-arm.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 # find ~ -name "libusb4java-*-linux-x86_64.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
