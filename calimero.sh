@@ -31,10 +31,11 @@ set -e
 # 20180702-054500: Removed detach server process from console patch and instead added new --no-stdin command line option to systemd service file. Set default KNX Address to a valid coupler address
 # 20180706-054000: knxtools script adjusted to calimero-tools-2.4-rc2.jar
 # 20190925-121000: Oracle Java -> OpenJDK
+# 20200110-054500: Orange PI PC: Script adjusted for Armbian with Mainline Kernel 5.4.x
 #
 # please see https://github.com/Race666/calimero-server for the latest changes
 #
-# version:0190925-121000 
+# version:20200110-054000 
 # 
 #
 ###############################################################################
@@ -141,10 +142,12 @@ else
     export KNX_CONNECTION=TPUART
 fi
 ########################## Determine Hardware #################################
-# sun8i=OrangePi PC  
-export HARDWARE_STRING_OPI=$(dmesg|grep Machine:|cut -d":" -f 2|xargs echo -n)
-if [ ! -z $HARDWARE_STRING_OPI ]; then
-		if [ $HARDWARE_STRING_OPI = "sun8i" ]; then
+# Old:sun8i=OrangePi PC  
+# export HARDWARE_STRING_OPI=$(dmesg|grep Machine:|cut -d":" -f 2|xargs echo -n)
+export HARDWARE_STRING_OPI=$(dmesg|grep -i 'Machine Model:'|cut -d":" -f 4|xargs echo -n)
+if [ ! -z "$HARDWARE_STRING_OPI" ]; then
+	# if [ $HARDWARE_STRING_OPI = "sun8i" ]; then
+	if [ "$HARDWARE_STRING_OPI" = "Xunlong Orange Pi PC" ]; then
 		echo "Orange Pi PC detected"
 		export HARDWARE=Orange
 		export SERIAL_INTERFACE=$SERIAL_INTERFACE_ORANGE_PI
@@ -224,10 +227,11 @@ apt-get -y install dirmngr
 apt-get -y install net-tools software-properties-common xmlstarlet debconf-utils crudini
 apt-get -y install unzip
 ########################### Java ##############################################
+set +e
 apt-cache show openjdk-11-jdk-headless > /dev/null 2>&1 
 if [ $? -eq 0 ]; then
 	echo "Installing OpenJDK 11"
-	apt-get install -y openjdk-11-jdk-headless
+	apt-get install -y openjdk-11-jdk-headless openjdk-11-jre
 else
 	if [ "$GIT_BRANCH" = "master" ] || [ "$GIT_TOOLS_BRANCH" = "master" ]; then
 		echo "Master branch requieres a Java version > 8"
@@ -237,12 +241,13 @@ else
 	apt-cache show openjdk-8-jdk-headless > /dev/null 2>&1 
 	if [ $? -eq 0 ]; then
 		echo "Installing OpenJDK 8"
-		apt-get install -y openjdk-8-jdk-headless
+		apt-get install -y openjdk-8-jdk-headless openjdk-8-jre
 	else
 		echo "No suitable Java Version found!"	
 		exit 200
 	fi
 fi
+set -e
 export JAVA_HOME_PATH=$(readlink -e /usr/bin/javac |sed -e's/\/bin\/javac//')
 
 # Check for Java bin
@@ -683,9 +688,17 @@ chown -R $CALIMERO_SERVER_USER:$CALIMERO_SERVER_GROUP $CALIMERO_CONFIG_PATH
 if [ $HARDWARE = "Orange" ]; then
 	# Enable UART3 for connecting a TPUART module
 	echo Alter Orange Hardware settings
-	bin2fex /boot/script.bin /tmp/script.fex
-	crudini --set /tmp/script.fex uart3 uart_used 1
-	fex2bin /tmp/script.fex /boot/script.bin
+	#bin2fex /boot/script.bin /tmp/script.fex
+	#crudini --set /tmp/script.fex uart3 uart_used 1
+	#fex2bin /tmp/script.fex /boot/script.bin
+	grep -i overlays /boot/armbianEnv.txt 
+	if [ "$?" -ge "1" ]; then
+		echo Add UART3 Overlay
+		echo overlays=uart3 >> /boot/armbianEnv.txt
+	else
+		echo Overlays already defined please add overlays=uart3 manually to /boot/armbianEnv.txt
+		read -p "Press enter to continue"
+	fi
 elif [ $HARDWARE = "Raspi" ]; then
 	# Raspberry
 	echo Alter Raspberry Hardware settings
