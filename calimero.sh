@@ -152,10 +152,15 @@ if [ ! -z $HARDWARE_STRING_OPI ]; then
 fi
 # Raspberry 
 if [ -z $HARDWARE ]; then
+	export MODEL_STRING=$(tr -d '\0' </proc/device-tree/model)
 	set +e
 	dmesg |grep -i "Raspberry Pi" >  /dev/null
 	if [ $? -eq 0 ]; then
 		echo Raspberry Pi found!
+		export HARDWARE=Raspi
+		export SERIAL_INTERFACE=$SERIAL_INTERFACE_RASPBERRY_PI
+	elif [[ $MODEL_STRING == *"Raspberry Pi"* ]]; then
+		echo $MODEL_STRING found!
 		export HARDWARE=Raspi
 		export SERIAL_INTERFACE=$SERIAL_INTERFACE_RASPBERRY_PI
 	fi
