@@ -359,6 +359,8 @@ SUBSYSTEM=="usb", ATTR{idVendor}=="04cc", ATTR{idProduct}=="0301", ACTION=="add"
 SUBSYSTEM=="usb", ATTR{idVendor}=="16d0", ATTR{idProduct}=="0491", ACTION=="add", GROUP="$CALIMERO_SERVER_GROUP", MODE="0664"
 # Siemens 148/12 KNX Interface
 SUBSYSTEM=="usb", ATTR{idVendor}=="0908", ATTR{idProduct}=="02dd", ACTION=="add", GROUP="$CALIMERO_SERVER_GROUP", MODE="0664"
+# Zennio KNX Interface, e.g., ZN1SY-USBP
+SUBSYSTEM=="usb", ATTR{idVendor}=="28c2", ATTR{idProduct}=="0002", ACTION=="add", GROUP="$CALIMERO_SERVER_GROUP", MODE="0664"
 # Low Latency for  Busware TUL TPUART USB
 ACTION=="add", SUBSYSTEM=="tty", ATTRS{idVendor}=="03eb", ATTRS{idProduct}=="204b", KERNELS=="1-4", SYMLINK+="ttyTPUART", RUN+="/bin/setserial /dev/%k low_latency", GROUP="dialout", MODE="0664"
 # Test rules example:
