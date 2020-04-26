@@ -605,7 +605,10 @@ echo Copy config files
 cp $CALIMERO_BUILD/calimero-server/resources/server-config.xml $CALIMERO_CONFIG_PATH
 if [ -f $CALIMERO_BUILD/calimero-server/resources/properties.xml ]; then
 	cp $CALIMERO_BUILD/calimero-server/resources/properties.xml $CALIMERO_CONFIG_PATH
-fi	
+else
+	# Make sure any old properties.xml file is gone
+	rm $CALIMERO_CONFIG_PATH/properties.xml
+fi
 
 ############################## Configure calimero  ############################
 cp $CALIMERO_CONFIG_PATH/server-config.xml $CALIMERO_CONFIG_PATH/server-config.xml.org
