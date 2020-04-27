@@ -612,7 +612,7 @@ if [ -f $CALIMERO_BUILD/calimero-server/resources/properties.xml ]; then
 	cp $CALIMERO_BUILD/calimero-server/resources/properties.xml $CALIMERO_CONFIG_PATH
 else
 	# Make sure any old properties.xml file is gone
-	rm $CALIMERO_CONFIG_PATH/properties.xml
+	mv $CALIMERO_CONFIG_PATH/properties.xml $CALIMERO_CONFIG_PATH/properties.xml-$(date '+%Y%m%d-%H%M%S')
 fi
 
 ############################## Configure calimero  ############################
