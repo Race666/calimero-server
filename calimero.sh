@@ -5,8 +5,6 @@ set -e
 # Script to compile and install calimero server + tool on an Orange Pi PC
 # armbian based systems or Raspberry Pi rasbian systems
 # 
-# The Script installs Oracle Java as Java VM because I use it with 
-# openhab on the same machine
 # 
 # 
 # Michael Albert info@michlstechblog.info
