@@ -745,6 +745,7 @@ Description=Calimero KNX Daemon
 After=network.target
 
 [Service]
+WorkingDirectory=/home/$CALIMERO_SERVER_USER
 # Wait for all interfaces, systemd-networkd-wait-online.service must be enabled
 #ExecStartPre=/lib/systemd/systemd-networkd-wait-online --timeout=60
 # Wait for a specific interface
