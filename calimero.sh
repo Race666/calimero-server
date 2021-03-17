@@ -543,9 +543,14 @@ if [ -z \$1 ]; then
     echo "   read"
     echo "   write"
     echo "   groupmon"
+    echo "   trafficmon"
     echo "   get"
     echo "   set"
     echo "   properties"
+    echo "   baos"
+    echo "   progmode"
+    echo "   restart"
+    echo "   import"
     exit 1	
 fi
 if [ "\$1" = "properties" ]; then
