@@ -70,9 +70,8 @@ export CALIMERO_SERVER_GROUP=knx
 # KNX Server Name
 export KNX_SERVER_NAME="Calimero KNXnet/IP Server"
 # Branch to use 
-export GIT_BRANCH="release/2.4"
-# Build for Tools with master branch failed at 20190612 -> 2.4 release
-export GIT_BRANCH_TOOLS="release/2.4"
+export GIT_BRANCH="release/2.5-M1"
+export GIT_BRANCH_TOOLS="release/2.5-M1"
 # export GIT_BRANCH="master"
 ###############################################################################
 # Usage
@@ -482,8 +481,8 @@ cp ./build/libs/calimero-server-2.*.jar $CALIMERO_SERVER_PATH
 
 
 echo "Copy libs to " $CALIMERO_SERVER_PATH
-find ~ -name "slf4j-api-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
-find ~ -name "slf4j-simple-1.8.0-beta*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+find ~ -name "slf4j-api-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
+find ~ -name "slf4j-simple-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 find ~ -name "usb4java-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 find ~ -name "usb4java-javax-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
 find ~ -name "usb-api-*.jar" -exec cp {} $CALIMERO_SERVER_PATH \;
@@ -655,9 +654,8 @@ sed -e"s/\/dev\/ttyS[[:digit:]]/\/dev\/$SERIAL_INTERFACE/g" $CALIMERO_CONFIG_PAT
 # Replace serial device /dev/ttyACMx => $SERIAL_INTERFACE
 sed -e"s/\/dev\/ttyACM[[:digit:]]/\/dev\/$SERIAL_INTERFACE/g" $CALIMERO_CONFIG_PATH/server-config.xml --in-place=.bak
 # Comment existing group address filter
-if [ "$GIT_BRANCH" = "master" ];then
-    : # nothing to do, config template does not have active group address filter
-else
+if [ "$GIT_BRANCH" = "release/2.4" ];then
+    # disable active group address filter in v2.4
 sed -e's/\(<groupAddressFilter>\)/<!-- \1/g' $CALIMERO_CONFIG_PATH/server-config.xml  --in-place=.bak
 sed -e's/\(<\/groupAddressFilter>\)/\1 -->/g' $CALIMERO_CONFIG_PATH/server-config.xml  --in-place=.bak
     xmlstarlet ed --inplace -s 'knxServer/serviceContainer' -t elem -n groupAddressFilter $CALIMERO_CONFIG_PATH/server-config.xml
