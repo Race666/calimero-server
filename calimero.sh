@@ -67,6 +67,8 @@ export LISTEN_NETWORK_INTERFACE=eth0
 export CALIMERO_SERVER_USER=knx
 # Group 
 export CALIMERO_SERVER_GROUP=knx
+# Server data directory
+export CALIMERO_SERVER_APP_DATA=/home/$CALIMERO_SERVER_USER/.calimero-server
 # KNX Server Name
 export KNX_SERVER_NAME="Calimero KNXnet/IP Server"
 # Branch to use 
@@ -76,8 +78,9 @@ export GIT_BRANCH_TOOLS="release/2.5-M1"
 ###############################################################################
 # Usage
 if [ "$1" = "-?" ] || [ "$1" = "-h" ] || [ "$1" = "--help" ];then
-	echo Usage $0 "[tpuart|usb|tunnel ip-tunnel-endpoint|clean]"
-	echo "    clean        deletes directories" $CALIMERO_BUILD, $CALIMERO_TOOLS_PATH and $CALIMERO_SERVER_PATH
+	echo Usage $0 "[tpuart|usb|tunnel ip-tunnel-endpoint|clean][--keyring <pwd>]"
+	echo "    clean              deletes directories" $CALIMERO_BUILD, $CALIMERO_TOOLS_PATH and $CALIMERO_SERVER_PATH
+	echo "    --keyring <pwd>    configure KNX IP Secure using keyring in current directory"
 	exit 0
 fi
 ###############################################################################
@@ -138,6 +141,16 @@ else
     echo Configure support for TPUART
     export KNX_CONNECTION=TPUART
 fi
+
+# Keyring option for KNX IP Secure
+if [ "$1" = "--keyring" ] || [ "$2" = "--keyring" ];then
+	files=( ./*.knxkeys )
+	export KEYRING_FILENAME=${files[0]}
+	export KEYRING=$(realpath $KEYRING_FILENAME)
+	echo Configure server for KNX IP Secure using $KEYRING
+	export KEYRING_PWD=${*: -1}
+fi
+
 ########################## Determine Hardware #################################
 # Old:sun8i=OrangePi PC  
 # export HARDWARE_STRING_OPI=$(dmesg|grep Machine:|cut -d":" -f 2|xargs echo -n)
@@ -312,6 +325,13 @@ if [ ! -d /home/$CALIMERO_SERVER_USER ]; then
 	mkdir /home/$CALIMERO_SERVER_USER
 fi	
 chown -R $CALIMERO_SERVER_USER:$CALIMERO_SERVER_GROUP /home/$CALIMERO_SERVER_USER
+
+# Create app data dir
+if [ ! -d $CALIMERO_SERVER_APP_DATA ]; then
+	mkdir -p $CALIMERO_SERVER_APP_DATA
+fi	
+chown -R $CALIMERO_SERVER_USER:$CALIMERO_SERVER_GROUP $CALIMERO_SERVER_APP_DATA
+
 
 ################################ USB ##########################################
 # !!!! Not sure if requiered to access USB devices...!!!!
@@ -617,10 +637,25 @@ else
 	mv $CALIMERO_CONFIG_PATH/properties.xml $CALIMERO_CONFIG_PATH/properties.xml-$(date '+%Y%m%d-%H%M%S') || true
 fi
 
+
+############################ Copy keyring file to app data directory #####################
+if [ $KEYRING ]; then
+	cp $KEYRING $CALIMERO_SERVER_APP_DATA
+
+	echo Create keyfile with keyring password
+	cat > $CALIMERO_SERVER_APP_DATA/keyfile <<EOF
+keyring.pwd=$KEYRING_PWD
+EOF
+fi
+
+
 ############################## Configure calimero  ############################
 cp $CALIMERO_CONFIG_PATH/server-config.xml $CALIMERO_CONFIG_PATH/server-config.xml.org
 # Set ServerName
 xmlstarlet ed --inplace -u 'knxServer/@friendlyName' -v "$KNX_SERVER_NAME"  $CALIMERO_CONFIG_PATH/server-config.xml
+# Set application data directory
+xmlstarlet ed --inplace -u 'knxServer/@appData' -v "$CALIMERO_SERVER_APP_DATA" \
+  --insert 'knxServer[not(@appData)]' --type attr -n appData -v "$CALIMERO_SERVER_APP_DATA" $CALIMERO_CONFIG_PATH/server-config.xml
 # Set own KNX Address
 xmlstarlet ed --inplace -u 'knxServer/serviceContainer/knxAddress[@type="individual"]' -v $KNX_ADDRESS  $CALIMERO_CONFIG_PATH/server-config.xml
 # Set Routing 
@@ -684,6 +719,11 @@ done
 # Add Attribute type=individual
 xmlstarlet ed  --inplace -s 'knxServer/serviceContainer/additionalAddresses/knxAddress' -t attr -n type -v individual $CALIMERO_CONFIG_PATH/server-config.xml
 
+# If a keyring is present, add to server-config.xml
+if [ $KEYRING ]; then
+	xmlstarlet ed --inplace --insert 'knxServer/serviceContainer' -t attr -n keyring -v $CALIMERO_SERVER_APP_DATA/$KEYRING_FILENAME $CALIMERO_CONFIG_PATH/server-config.xml
+	xmlstarlet ed --inplace --insert 'knxServer/serviceContainer' -t attr -n keyfile -v $CALIMERO_SERVER_APP_DATA/keyfile $CALIMERO_CONFIG_PATH/server-config.xml
+fi
 
 
 # Set owner on server and config path. Need to be discussed. Read/execute permissions should sufficient
