@@ -295,9 +295,9 @@ fi
 
 
 # Install Maven
-MVN_VERSION=3.9.0
+MVN_VERSION=3.9.4
 
-wget -P /tmp/ http://www.mirrorservice.org/sites/ftp.apache.org/maven/maven-3/$MVN_VERSION/binaries/apache-maven-$MVN_VERSION-bin.tar.gz
+wget -P /tmp/ https://archive.apache.org/dist/maven/maven-3/$MVN_VERSION/binaries/apache-maven-$MVN_VERSION-bin.tar.gz
 
 cd /opt && sudo tar -xzvf /tmp/apache-maven-$MVN_VERSION-bin.tar.gz
 
