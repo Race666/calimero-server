@@ -70,6 +70,7 @@ export CALIMERO_SERVER_APP_DATA=/home/$CALIMERO_SERVER_USER/.calimero-server
 # KNX Server Name
 export KNX_SERVER_NAME="Calimero KNXnet/IP Server"
 # Branch to use 
+
 export GIT_BRANCH="master"
 export GIT_BRANCH_TOOLS="master"
 # Temp dir for extracting archives after building
@@ -478,6 +479,7 @@ clone_update_repo calimero-rxtx $GIT_BRANCH
 cd $CALIMERO_BUILD
 clone_update_repo calimero-usb
 # ./gradlew build publishToMavenLocal
+
 
 # calimero-server
 cd $CALIMERO_BUILD
