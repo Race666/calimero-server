@@ -70,8 +70,9 @@ export CALIMERO_SERVER_APP_DATA=/home/$CALIMERO_SERVER_USER/.calimero-server
 # KNX Server Name
 export KNX_SERVER_NAME="Calimero KNXnet/IP Server"
 # Branch to use 
-export GIT_BRANCH="release/2.5.1"
-export GIT_BRANCH_TOOLS="release/2.5.1"
+
+export GIT_BRANCH="master"
+export GIT_BRANCH_TOOLS="master"
 # Temp dir for extracting archives after building
 export CALIMERO_TMP="/tmp/calimero"
 
@@ -244,15 +245,17 @@ apt-get -y install net-tools software-properties-common xmlstarlet debconf-utils
 apt-get -y install unzip
 ########################### Java ##############################################
 set +e
-apt-cache show openjdk-11-jdk-headless > /dev/null 2>&1 
-if [ $? -eq 0 ]; then
-	echo "Installing OpenJDK 11"
-	apt-get install -y openjdk-11-jdk-headless openjdk-11-jre
-else
-	echo "Calimero requieres a Java version >= 11"
-	echo "Consider to use the backports repository to get the latest openjdk verion"
-	exit 200
-fi
+
+# Install JDK >= 17
+# Steps according to https://adoptium.net/en-GB/blog/2021/12/eclipse-temurin-linux-installers-available/
+
+apt-get install -y wget apt-transport-https gnupg
+wget -O - https://packages.adoptium.net/artifactory/api/gpg/key/public | apt-key add -
+echo "deb https://packages.adoptium.net/artifactory/deb $(awk -F= '/^VERSION_CODENAME/{print$2}' /etc/os-release) main" | tee /etc/apt/sources.list.d/adoptium.list
+
+apt-get update
+apt-get install -y temurin-17-jdk
+
 set -e
 export JAVA_HOME_PATH=$(readlink -e /usr/bin/javac |sed -e's/\/bin\/javac//')
 
@@ -472,6 +475,12 @@ fi
 cd $CALIMERO_BUILD
 clone_update_repo calimero-rxtx $GIT_BRANCH
 
+# calimero-usb
+cd $CALIMERO_BUILD
+clone_update_repo calimero-usb
+# ./gradlew build publishToMavenLocal
+
+
 # calimero-server
 cd $CALIMERO_BUILD
 clone_update_repo calimero-server $GIT_BRANCH
@@ -517,6 +526,13 @@ rm $DIST_TOOLS_FOLDER/lib/calimero-rxtx-*.jar $DIST_TOOLS_FOLDER/lib/nrjavaseria
 mv $DIST_TOOLS_FOLDER/lib/* $CALIMERO_TOOLS_PATH
 
 # Tools wrapper
+export DEF_TOOL_OPTS="\
+--add-reads io.calimero.tools=ALL-UNNAMED \
+--add-reads io.calimero.core=io.calimero.tools \
+--add-reads io.calimero.usb.provider.javax=ALL-UNNAMED \
+--limit-modules io.calimero.tools,io.calimero.serial.provider.jni,io.calimero.usb.provider.javax \
+-p $CALIMERO_TOOLS_PATH -cp \"$CALIMERO_TOOLS_PATH/*\""
+
 cat > $BIN_PATH/knxtools <<EOF
 #!/bin/sh
 #
@@ -553,16 +569,16 @@ if [ "\$1" = "properties" ]; then
     else
         export PARAM2=\$2
     fi 
-    java \$KNXTOOLS_JVM_OPTS -jar $CALIMERO_TOOLS_PATH/calimero-tools-2.*.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
+    java \$KNXTOOLS_JVM_OPTS $DEF_TOOL_OPTS --module io.calimero.tools \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
 elif [ "\$1" = "discover" ]; then 	
-    java \$KNXTOOLS_JVM_OPTS -jar $CALIMERO_TOOLS_PATH/calimero-tools-2.*.jar \$@
+    java \$KNXTOOLS_JVM_OPTS $DEF_TOOL_OPTS --module io.calimero.tools \$@
 else
     if  [ -z "\$2" ]  || [ "\$2" = "-?" ] || [ "\$2" = "-h" ]; then
         export PARAM2=--help
     else
         export PARAM2=\$2
     fi 
-    java \$KNXTOOLS_JVM_OPTS -jar $CALIMERO_TOOLS_PATH/calimero-tools-2.*.jar \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
+    java \$KNXTOOLS_JVM_OPTS $DEF_TOOL_OPTS --module io.calimero.tools \$1 \$PARAM2 \$3 \$4 \$5 \$6 \$7 \$8 \$9 \$10 \$11 \$12 \$13 \$14 \$15 \$16 \$17 \$18 \$19 \$20 \$21 \$22 \$23 \$24 \$25
 fi
 EOF
 chmod +x $BIN_PATH/knxtools
@@ -716,6 +732,13 @@ fi
 
 # Systemd knx unit
 echo Create systemd service
+
+export DEF_SERVER_OPTS="\
+--add-reads io.calimero.core=io.calimero.server \
+--add-reads io.calimero.usb.provider.javax=ALL-UNNAMED \
+--limit-modules io.calimero.server,io.calimero.serial.provider.jni,io.calimero.usb.provider.javax \
+-p $CALIMERO_CONFIG_PATH:$CALIMERO_SERVER_PATH -cp \"$CALIMERO_CONFIG_PATH:$CALIMERO_SERVER_PATH/*\""
+
 cat >  /etc/systemd/system/knx.service <<EOF
 [Unit]
 Description=Calimero KNX Daemon
@@ -727,7 +750,7 @@ WorkingDirectory=/home/$CALIMERO_SERVER_USER
 #ExecStartPre=/lib/systemd/systemd-networkd-wait-online --timeout=60
 # Wait for a specific interface
 #ExecStartPre=/lib/systemd/systemd-networkd-wait-online --timeout=60 --interface=eth0
-ExecStart=/usr/bin/java -cp "$CALIMERO_CONFIG_PATH:$CALIMERO_SERVER_PATH/*" tuwien.auto.calimero.server.Launcher --no-stdin $CALIMERO_CONFIG_PATH/server-config.xml 
+ExecStart=/usr/bin/java $DEF_SERVER_OPTS --module io.calimero.server --no-stdin $CALIMERO_CONFIG_PATH/server-config.xml
 Type=simple
 User=$CALIMERO_SERVER_USER
 Group=$CALIMERO_SERVER_GROUP
