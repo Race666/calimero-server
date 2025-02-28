@@ -497,7 +497,7 @@ if [ "$ARCH" = "ARM" ]; then
 	find $DIST_SERVER_FOLDER/lib/ \! -name "libusb*arm*" -name "libusb*" -delete
 elif [ "$ARCH" = "X64" ]; then
 	# only keep the x64 version of libusb
-	find $DIST_SERVER_FOLDER/lib/ \! -name "libusb*linux-x86_64*" -name "libusb*" -delete
+	find $DIST_SERVER_FOLDER/lib/ \! -name "libusb*linux-x86-64*" -name "libusb*" -delete
 fi
 rm $DIST_SERVER_FOLDER/lib/calimero-rxtx-*.jar $DIST_SERVER_FOLDER/lib/nrjavaserial-*.jar
 mv $DIST_SERVER_FOLDER/lib/* $CALIMERO_SERVER_PATH
@@ -520,7 +520,7 @@ if [ "$ARCH" = "ARM" ]; then
 	find $DIST_TOOLS_FOLDER/lib/ \! -name "libusb*arm*" -name "libusb*" -delete
 elif [ "$ARCH" = "X64" ]; then
 	# only keep the x64 version of libusb
-	find $DIST_TOOLS_FOLDER/lib/ \! -name "libusb*linux-x86_64*" -name "libusb*" -delete
+	find $DIST_TOOLS_FOLDER/lib/ \! -name "libusb*linux-x86-64*" -name "libusb*" -delete
 fi
 rm $DIST_TOOLS_FOLDER/lib/calimero-rxtx-*.jar $DIST_TOOLS_FOLDER/lib/nrjavaserial-*.jar
 mv $DIST_TOOLS_FOLDER/lib/* $CALIMERO_TOOLS_PATH
