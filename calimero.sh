@@ -156,10 +156,9 @@ fi
 ########################## Determine Hardware #################################
 # Old:sun8i=OrangePi PC  
 # export HARDWARE_STRING_OPI=$(dmesg|grep Machine:|cut -d":" -f 2|xargs echo -n)
-export HARDWARE_STRING_OPI=$(dmesg|grep -i 'Machine Model:'|cut -d":" -f 4|xargs echo -n)
+export HARDWARE_STRING_OPI=$(dmesg  | grep -i "Machine model" |  grep -oi "Orange Pi")
 if [ ! -z "$HARDWARE_STRING_OPI" ]; then
-	# if [ $HARDWARE_STRING_OPI = "sun8i" ]; then
-	if [ "$HARDWARE_STRING_OPI" = "Xunlong Orange Pi PC" ]; then
+	if [ "$HARDWARE_STRING_OPI" = "Orange Pi" ]; then
 		echo "Orange Pi PC detected"
 		export HARDWARE=Orange
 		export SERIAL_INTERFACE=$SERIAL_INTERFACE_ORANGE_PI
